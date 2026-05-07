@@ -818,3 +818,7 @@ if st.session_state.recommend_result:
                         st.rerun()
                     else:
                         st.error(result.get("message", "生成失败"))
+        if st.session_state.bouquet_desc:
+            st.markdown("---")
+            st.markdown("### 🖼️ AI花束示意图")
+            st.code(st.session_state.bouquet_desc, language="text")
