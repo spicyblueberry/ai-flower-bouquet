@@ -761,4 +761,22 @@ if st.session_state.recommend_result:
         st.caption("💡 提示：下方序号可调整花材顺序（主花在前效果更佳）")
         
         for i, flower in enumerate(st.session_state.selected_flowers):
-            col_a, col_b, col_c
+            col_a, col_b, col_c, col_d, col_e = st.columns([0.5, 2, 2, 1, 1])
+            with col_a:
+                st.write(f"**#{i+1}**")
+            with col_b:
+                st.write(f"{get_flower_emoji(flower['name'])} {flower['name']}")
+            with col_c:
+                st.write(f"💬 {flower['language'][:12]}...")
+            with col_d:
+                if i > 0 and st.button("⬆️", key=f"up_{flower['id']}"):
+                    new_list = st.session_state.selected_flowers.copy()
+                    new_list[i], new_list[i-1] = new_list[i-1], new_list[i]
+                    st.session_state.selected_flowers = new_list
+                    st.rerun()
+            with col_e:
+                if i < len(st.session_state.selected_flowers) - 1 and st.button("⬇️", key=f"down_{flower['id']}"):
+                    new_list = st.session_state.selected_flowers.copy()
+                    new_list[i], new_list[i+1] = new_list[i+1], new_list[i]
+                    st.session_state.selected_flowers = new_list
+                    st.rerun()
