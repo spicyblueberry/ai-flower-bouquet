@@ -780,3 +780,41 @@ if st.session_state.recommend_result:
                     new_list[i], new_list[i+1] = new_list[i+1], new_list[i]
                     st.session_state.selected_flowers = new_list
                     st.rerun()
+
+        # 搭配比例分析
+        st.markdown("### 📊 搭配比例分析")
+        flower_types = [get_flower_type(f['name']) for f in st.session_state.selected_flowers]
+        main_count = flower_types.count('主花')
+        filler_count = flower_types.count('配花')
+        leaf_count = flower_types.count('叶材')
+        total = max(main_count + filler_count + leaf_count, 1)
+        
+        st.progress(main_count/total, text=f"🌹 主花 {main_count}种")
+        st.progress(filler_count/total, text=f"✨ 配花 {filler_count}种")
+        st.progress(leaf_count/total, text=f"🍃 叶材 {leaf_count}种")
+        
+        if main_count == 0:
+            st.warning("💡 建议添加1-2种主花，让花束更有焦点")
+        
+        # 预估价格
+        price_map = {'低': 60, '中': 180, '中高': 280, '高': 400}
+        total_price = sum([price_map.get(f.get('price_level', '中'), 150) for f in st.session_state.selected_flowers])
+        
+        col_price, col_btn = st.columns([1, 1])
+        with col_price:
+            st.metric("💰 预估价格", f"¥{total_price} - ¥{total_price + 100}")
+        with col_btn:
+            # ⬇️ 这个就是生成按钮
+            if st.button("🎨 生成花束示意图", type="primary", use_container_width=True):
+                with st.spinner("🎨 AI正在构思花束设计..."):
+                    selected_ids = [f["id"] for f in st.session_state.selected_flowers]
+                    result = generate_bouquet_description(
+                        flower_ids=selected_ids,
+                        color_preference=st.session_state.color if st.session_state.color != "任意" else ""
+                    )
+                    if result["success"]:
+                        st.session_state.bouquet_desc = result["description"]
+                        st.success("✨ 花束描述生成成功！")
+                        st.rerun()
+                    else:
+                        st.error(result.get("message", "生成失败"))
