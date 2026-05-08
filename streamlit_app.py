@@ -178,7 +178,7 @@ def recommend_flowers(target, occasion, color_preference, style, budget, flower_
     elif has_scent == "无香味":
         filtered_results = [f for f in filtered_results if f.get('scent', '') == '无香味']
     if not filtered_results:
-        filtered_results = rag_results[:4]
+        filtered_results = rag_results[:6]
     prompt = f"""你是一个专业的花艺推荐师。请根据以下花材推荐结果，写一段150字以内的推荐语。
 推荐对象：{target}
 场合：{occasion}
