@@ -9,7 +9,8 @@
     "style": "浪漫经典",
     "price_level": "中",
     "description": "最经典的爱情之花，不同颜色代表不同深浅的爱意，是送花首选。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 8
   },
   {
     "id": 2,
@@ -21,7 +22,8 @@
     "style": "可爱活泼",
     "price_level": "中",
     "description": "多头玫瑰，花苞小巧成簇，玲珑精致，适合营造丰满的花束。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 9
   },
   {
     "id": 3,
@@ -33,7 +35,8 @@
     "style": "高贵典雅",
     "price_level": "中",
     "description": "花姿优雅，香气清雅，适合表达纯真的祝福和美好愿景。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 15
   },
   {
     "id": 4,
@@ -45,7 +48,8 @@
     "style": "温馨朴实",
     "price_level": "低",
     "description": "经典温馨花卉，不同颜色含义各异，粉色代表母爱与年轻女性的感谢。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 5,
@@ -57,7 +61,8 @@
     "style": "清新优雅",
     "price_level": "中",
     "description": "花型柔美，色彩丰富，代表永恒不变的真心，是百搭主花。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 7
   },
   {
     "id": 6,
@@ -69,7 +74,8 @@
     "style": "饱满大气",
     "price_level": "中",
     "description": "团簇饱满，单枝成景，观赏性强，寓意生活美满幸福。",
-    "season": "夏秋盛，全年有"
+    "season": "夏秋盛，全年有",
+    "unit_price": 18
   },
   {
     "id": 7,
@@ -81,7 +87,8 @@
     "style": "清纯浪漫",
     "price_level": "低",
     "description": "常作配花，蓬松如繁星点点，代表默默守护的爱意。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 8,
@@ -93,7 +100,8 @@
     "style": "深情含蓄",
     "price_level": "低",
     "description": "小花持久不凋，常作干花，表达长久的思念与牵挂。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 9,
@@ -105,7 +113,8 @@
     "style": "浪漫野趣",
     "price_level": "低",
     "description": "细碎小花自然蓬松，常与满天星搭配，增加花束朦胧感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 10,
@@ -117,7 +126,8 @@
     "style": "自然野趣",
     "price_level": "低",
     "description": "细小花穗自带晶莹感，适合干花或填充花束空间。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 11,
@@ -129,7 +139,8 @@
     "style": "阳光热烈",
     "price_level": "低",
     "description": "又名非洲菊，花色鲜艳明快，给人积极向上的力量。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 12,
@@ -141,7 +152,8 @@
     "style": "清新可爱",
     "price_level": "低",
     "description": "小巧玲珑，花期超长，充满少女感和田园气息。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 13,
@@ -153,7 +165,8 @@
     "style": "圆润可爱",
     "price_level": "中",
     "description": "花型浑圆如乒乓球，呆萌有趣，讨喜且花期长。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 7
   },
   {
     "id": 14,
@@ -165,7 +178,8 @@
     "style": "华丽大气",
     "price_level": "中",
     "description": "花头极大，类似牡丹，常被吸染成各种颜色，富贵感十足。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 12
   },
   {
     "id": 15,
@@ -177,7 +191,8 @@
     "style": "阳光活力",
     "price_level": "低中",
     "description": "给人积极向上的感觉，适合送给性格开朗或需要鼓励的人。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 16,
@@ -189,7 +204,8 @@
     "style": "优雅芬芳",
     "price_level": "中",
     "description": "花序修长，带有迷人香气，是古典又浪漫的花材。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 8
   },
   {
     "id": 17,
@@ -201,7 +217,8 @@
     "style": "趣味灵动",
     "price_level": "低中",
     "description": "花朵形似金鱼，颜色丰富，作为线条花材增加趣味性。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 18,
@@ -213,7 +230,8 @@
     "style": "简约高贵",
     "price_level": "中",
     "description": "花型独特如马蹄，线条流畅，代表高贵优雅的爱。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 10
   },
   {
     "id": 19,
@@ -225,7 +243,8 @@
     "style": "田园清新",
     "price_level": "低",
     "description": "小小花朵散发苹果香气，自然野趣，充满治愈感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 20,
@@ -237,7 +256,8 @@
     "style": "梦幻柔美",
     "price_level": "中",
     "description": "伞形花序，小花如蕾丝般精致，让花束充满空气感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 8
   },
   {
     "id": 21,
@@ -249,7 +269,8 @@
     "style": "清新脱俗",
     "price_level": "中",
     "description": "花朵似铃铛垂挂，灵动可爱，带有一种宁静的美。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 9
   },
   {
     "id": 22,
@@ -261,7 +282,8 @@
     "style": "清冷高级",
     "price_level": "中",
     "description": "罕见的天然蓝色小花，色调高级，是花束中的点睛之笔。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 7
   },
   {
     "id": 23,
@@ -273,7 +295,8 @@
     "style": "自然野趣",
     "price_level": "中",
     "description": "细长花梗顶端开花，线条灵动，适合增加花束层次感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 7
   },
   {
     "id": 24,
@@ -285,7 +308,8 @@
     "style": "线条感强",
     "price_level": "中",
     "description": "高大的线性花材，花朵密集成串，给花束带来气势。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 10
   },
   {
     "id": 25,
@@ -297,7 +321,8 @@
     "style": "自然质朴",
     "price_level": "低中",
     "description": "紫色长穗花，线条优美，是打造自然风花束的好配材。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 26,
@@ -309,7 +334,8 @@
     "style": "精致轻盈",
     "price_level": "中",
     "description": "伞形白花细密如蕾丝，为花束增添精致与透明感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 8
   },
   {
     "id": 27,
@@ -321,7 +347,8 @@
     "style": "雅致清新",
     "price_level": "低中",
     "description": "花瓣有斑点纹路，花朵似百合但更小巧，寓意美好相聚。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 28,
@@ -333,7 +360,8 @@
     "style": "深情含蓄",
     "price_level": "低中",
     "description": "花形小巧，花语含蓄深情，适合异地恋或表达思念之情。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 29,
@@ -345,7 +373,8 @@
     "style": "朴素雅致",
     "price_level": "低",
     "description": "花型规整，色彩淡雅，是日常插花的常用花材。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 30,
@@ -357,7 +386,8 @@
     "style": "轻盈野趣",
     "price_level": "低",
     "description": "茎叶纤细，花朵随风摇曳，充满田园自由的气息。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 4
   },
   {
     "id": 31,
@@ -369,7 +399,8 @@
     "style": "鲜明夺目",
     "price_level": "低",
     "description": "金黄色花瓣与深色花心对比强烈，视觉冲击力强。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 5
   },
   {
     "id": 32,
@@ -381,7 +412,8 @@
     "style": "蜡质光泽",
     "price_level": "低",
     "description": "花瓣硬脆如蜡，色彩鲜艳不褪，是天然干花好材料。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 33,
@@ -393,7 +425,8 @@
     "style": "明亮可爱",
     "price_level": "低",
     "description": "球形小花，颜色鲜亮，寓意收获与圆满，适合点缀花束。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 34,
@@ -405,7 +438,8 @@
     "style": "热烈点缀",
     "price_level": "低中",
     "description": "果实密集鲜红，常作切果使用，增添喜庆和相思之意。",
-    "season": "秋冬"
+    "season": "秋冬",
+    "unit_price": 6
   },
   {
     "id": 35,
@@ -417,7 +451,8 @@
     "style": "优雅华贵",
     "price_level": "中高",
     "description": "兰科植物，花姿优美，观赏期长，适合表达尊敬与祝福。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 18
   },
   {
     "id": 36,
@@ -429,7 +464,8 @@
     "style": "活泼俏皮",
     "price_level": "中",
     "description": "花朵形似起舞少女，动感十足，让花束充满欢乐律动。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 12
   },
   {
     "id": 37,
@@ -441,7 +477,8 @@
     "style": "高贵优雅",
     "price_level": "高",
     "description": "花似蝴蝶停驻，气质高雅，是高级切花代表。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 25
   },
   {
     "id": 38,
@@ -453,7 +490,8 @@
     "style": "华丽大气",
     "price_level": "高",
     "description": "花头大而密集，花色丰富，极具气场与富贵感。",
-    "season": "冬春"
+    "season": "冬春",
+    "unit_price": 30
   },
   {
     "id": 39,
@@ -465,7 +503,8 @@
     "style": "独特艺术",
     "price_level": "中",
     "description": "花形似极乐鸟，造型独特，充满热带风情与艺术感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 10
   },
   {
     "id": 40,
@@ -477,7 +516,8 @@
     "style": "现代简约",
     "price_level": "中",
     "description": "心形佛焰苞光亮夺目，花期极长，寓意好运与热情。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 9
   },
   {
     "id": 41,
@@ -489,7 +529,8 @@
     "style": "清雅芬芳",
     "price_level": "低",
     "description": "香气清幽醉人，小花洁白，代表纯粹的爱与尊重。",
-    "season": "夏季"
+    "season": "夏季",
+    "unit_price": 4
   },
   {
     "id": 42,
@@ -501,7 +542,8 @@
     "style": "清香洁白",
     "price_level": "低",
     "description": "香气浓郁，花瓣纯净，象征坚贞不渝的情谊。",
-    "season": "夏季"
+    "season": "夏季",
+    "unit_price": 5
   },
   {
     "id": 43,
@@ -513,7 +555,8 @@
     "style": "清雅幽香",
     "price_level": "低",
     "description": "白色蝴蝶状花朵，香气清新似姜，充满夏日气息。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 5
   },
   {
     "id": 44,
@@ -525,7 +568,8 @@
     "style": "浓郁妩媚",
     "price_level": "中",
     "description": "夜晚香气更浓，花茎挺拔，是经典的芳香切花。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 8
   },
   {
     "id": 45,
@@ -537,7 +581,8 @@
     "style": "挺拔大气",
     "price_level": "低中",
     "description": "花朵自下而上开放，寓意节节高升，适合送给祝福对象。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 6
   },
   {
     "id": 46,
@@ -549,7 +594,8 @@
     "style": "清新高级",
     "price_level": "中",
     "description": "又名伯利恒之星，伞状白花带绿心，极具高级感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 10
   },
   {
     "id": 47,
@@ -561,7 +607,8 @@
     "style": "细碎可爱",
     "price_level": "低",
     "description": "小花成簇开放，适合作为填充配花，增添朦胧美。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 48,
@@ -573,7 +620,8 @@
     "style": "精致蜡质",
     "price_level": "中",
     "description": "花瓣有蜡质感，花期极长，带有淡淡的松香。",
-    "season": "冬春"
+    "season": "冬春",
+    "unit_price": 7
   },
   {
     "id": 49,
@@ -585,7 +633,8 @@
     "style": "优雅浪漫",
     "price_level": "中高",
     "description": "五月花神，花型雍容华贵，花语表达深情与依恋。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 20
   },
   {
     "id": 50,
@@ -597,7 +646,8 @@
     "style": "雍容华贵",
     "price_level": "高",
     "description": "花王牡丹，花朵硕大，象征富贵吉祥，气场强大。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 35
   },
   {
     "id": 51,
@@ -609,7 +659,8 @@
     "style": "优雅浪漫",
     "price_level": "中高",
     "description": "荷兰国花，花型优雅，不同颜色代表不同的浪漫爱意。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 15
   },
   {
     "id": 52,
@@ -621,7 +672,8 @@
     "style": "柔美层叠",
     "price_level": "中",
     "description": "花瓣层叠如牡丹，枝干柔美，颜色丰富，性价比高。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 8
   },
   {
     "id": 53,
@@ -633,7 +685,8 @@
     "style": "艳丽独特",
     "price_level": "中",
     "description": "花瓣薄透，花心别致，是春季独特又上镜的花材。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 9
   },
   {
     "id": 54,
@@ -645,7 +698,8 @@
     "style": "清丽芬芳",
     "price_level": "中",
     "description": "花序弯曲优雅，香气甜美，是春季标志性香花。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 6
   },
   {
     "id": 55,
@@ -657,7 +711,8 @@
     "style": "芬芳优雅",
     "price_level": "中",
     "description": "小花成簇，香气浓郁，充满文艺与怀旧的春日气息。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 8
   },
   {
     "id": 56,
@@ -669,7 +724,8 @@
     "style": "清新绿意",
     "price_level": "中",
     "description": "白色小花团簇开放，枝条修长，充满生机盎然之感。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 10
   },
   {
     "id": 57,
@@ -681,7 +737,8 @@
     "style": "仙气飘逸",
     "price_level": "中",
     "description": "细枝上开满小白花，如雪如柳，线条感极强。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 12
   },
   {
     "id": 58,
@@ -693,7 +750,8 @@
     "style": "烂漫明媚",
     "price_level": "中",
     "description": "春季代表性的花枝，寓意桃花运和美好爱情。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 8
   },
   {
     "id": 59,
@@ -705,7 +763,8 @@
     "style": "浪漫飘逸",
     "price_level": "中",
     "description": "春季限定，花团锦簇，浪漫又短暂，极具东方美学。",
-    "season": "春季"
+    "season": "春季",
+    "unit_price": 10
   },
   {
     "id": 60,
@@ -717,7 +776,8 @@
     "style": "清新高雅",
     "price_level": "中",
     "description": "伞形花序，花色淡雅，代表真挚的情谊和祝福。",
-    "season": "夏季"
+    "season": "夏季",
+    "unit_price": 9
   },
   {
     "id": 61,
@@ -729,7 +789,8 @@
     "style": "清雅脱俗",
     "price_level": "中高",
     "description": "水生花代表，气质高洁，适合表达崇敬与纯净的心。",
-    "season": "夏季"
+    "season": "夏季",
+    "unit_price": 20
   },
   {
     "id": 62,
@@ -741,7 +802,8 @@
     "style": "静谧梦幻",
     "price_level": "中",
     "description": "花色梦幻，昼开夜合，带有神秘优雅的气质。",
-    "season": "夏季"
+    "season": "夏季",
+    "unit_price": 10
   },
   {
     "id": 63,
@@ -753,7 +815,8 @@
     "style": "禅意自然",
     "price_level": "中",
     "description": "荷花花托，造型别致，常用于东方插花和干花。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 8
   },
   {
     "id": 64,
@@ -765,7 +828,8 @@
     "style": "绚烂夺目",
     "price_level": "中",
     "description": "花型巨大，色彩绚丽，是秋日花园的主角。",
-    "season": "夏秋"
+    "season": "夏秋",
+    "unit_price": 10
   },
   {
     "id": 65,
@@ -777,7 +841,8 @@
     "style": "复古高级",
     "price_level": "中",
     "description": "普通绣球的秋日变种，颜色沉淀出复古质感，可做干花。",
-    "season": "秋季"
+    "season": "秋季",
+    "unit_price": 20
   },
   {
     "id": 66,
@@ -789,7 +854,8 @@
     "style": "傲骨清香",
     "price_level": "中",
     "description": "冬季花枝代表，象征坚强与希望，暗香浮动。",
-    "season": "冬季"
+    "season": "冬季",
+    "unit_price": 15
   },
   {
     "id": 67,
@@ -801,7 +867,8 @@
     "style": "清香高洁",
     "price_level": "中",
     "description": "冬日里的一抹暖黄，香气清冽，是中式插花良品。",
-    "season": "冬季"
+    "season": "冬季",
+    "unit_price": 15
   },
   {
     "id": 68,
@@ -813,7 +880,8 @@
     "style": "热烈喜庆",
     "price_level": "中高",
     "description": "落叶后红果满枝，是秋冬高端切果，寓意红红火火。",
-    "season": "秋冬"
+    "season": "秋冬",
+    "unit_price": 20
   },
   {
     "id": 69,
@@ -825,7 +893,8 @@
     "style": "自然野趣",
     "price_level": "低中",
     "description": "成簇的红果枝条，野趣十足，适合秋冬氛围花束。",
-    "season": "秋冬"
+    "season": "秋冬",
+    "unit_price": 6
   },
   {
     "id": 70,
@@ -837,7 +906,8 @@
     "style": "趣味灯笼",
     "price_level": "低",
     "description": "橙色灯笼状果实，造型独特，是秋日特色切果。",
-    "season": "秋季"
+    "season": "秋季",
+    "unit_price": 5
   },
   {
     "id": 71,
@@ -849,7 +919,8 @@
     "style": "自然野果",
     "price_level": "低",
     "description": "野蔷薇果实，小巧红艳，适合作为配果增添野趣。",
-    "season": "秋冬"
+    "season": "秋冬",
+    "unit_price": 5
   },
   {
     "id": 72,
@@ -861,7 +932,8 @@
     "style": "软糯温暖",
     "price_level": "低中",
     "description": "天然白色棉桃，触感柔软，适合搭配干花或冬季花束。",
-    "season": "秋冬"
+    "season": "秋冬",
+    "unit_price": 8
   },
   {
     "id": 73,
@@ -873,7 +945,8 @@
     "style": "高级灰调",
     "price_level": "低",
     "description": "常用叶材，气味清新独特，叶片圆润或细长，提升花束质感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 74,
@@ -885,7 +958,8 @@
     "style": "线条飘逸",
     "price_level": "低",
     "description": "枝条修长，叶片细小，富有线条美，适合营造延伸感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 75,
@@ -897,7 +971,8 @@
     "style": "仙气朦胧",
     "price_level": "中",
     "description": "细碎花穗如喷泉般散开，增加花束的空气感和梦幻感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 7
   },
   {
     "id": 76,
@@ -909,7 +984,8 @@
     "style": "热带风情",
     "price_level": "低",
     "description": "叶片宽大带孔洞，单叶即成风景，适合打造热带感。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 77,
@@ -921,7 +997,8 @@
     "style": "舒展大气",
     "price_level": "低",
     "description": "大型叶材，叶片细长舒展，常作背景或填充空间。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 78,
@@ -933,7 +1010,8 @@
     "style": "自然雅致",
     "price_level": "低",
     "description": "叶片秀丽，秋冬变红，是兼具观叶与氛围的枝条。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 79,
@@ -945,7 +1023,8 @@
     "style": "层叠苍翠",
     "price_level": "低",
     "description": "松针状叶簇生成层，常用于填充或作为胸花底座。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 80,
@@ -957,7 +1036,8 @@
     "style": "简洁利落",
     "price_level": "低",
     "description": "叶片修长翠绿，常作花束底层背景叶，简单百搭。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 2
   },
   {
     "id": 81,
@@ -969,7 +1049,8 @@
     "style": "波状卷曲",
     "price_level": "低",
     "description": "叶片边缘波浪状，富有动态美，增添花束层次。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 4
   },
   {
     "id": 82,
@@ -981,7 +1062,8 @@
     "style": "柔美蕨类",
     "price_level": "低",
     "description": "叶片细碎如羽毛，是经典陪衬叶材，柔化花束边缘。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 83,
@@ -993,7 +1075,8 @@
     "style": "挺拔现代",
     "price_level": "低",
     "description": "叶片直立如剑，适合增加花束的结构与垂直线条。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 3
   },
   {
     "id": 84,
@@ -1005,7 +1088,8 @@
     "style": "油亮翠绿",
     "price_level": "低",
     "description": "叶片油亮，衬花效果极佳，是常见的基础叶材。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 2
   },
   {
     "id": 85,
@@ -1017,7 +1101,8 @@
     "style": "蜿蜒艺术",
     "price_level": "低",
     "description": "枝条自然扭曲，造型感强，常用作架构枝材。",
-    "season": "全年"
+    "season": "全年",
+    "unit_price": 5
   },
   {
     "id": 86,
@@ -1029,7 +1114,8 @@
     "style": "红色线条",
     "price_level": "低",
     "description": "落叶后枝干变红，鲜艳醒目，是冬季特色线条枝材。",
-    "season": "冬季"
+    "season": "冬季",
+    "unit_price": 5
   },
   {
     "id": 87,
@@ -1041,7 +1127,8 @@
     "style": "自然野趣",
     "price_level": "低",
     "description": "水边植物，棒状花序，可作干花，营造秋日氛围。",
-    "season": "秋季"
+    "season": "秋季",
+    "unit_price": 5
   },
   {
     "id": 88,
@@ -1053,6 +1140,7 @@
     "style": "秋意飘逸",
     "price_level": "低",
     "description": "穗状花序蓬松柔软，随风摇曳，是打造秋日自然风的利器。",
-    "season": "秋季"
+    "season": "秋季",
+    "unit_price": 4
   }
 ]
