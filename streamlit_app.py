@@ -646,7 +646,17 @@ if st.session_state.recommend_result:
                     )
                     if desc_result["success"]:
                         st.session_state.bouquet_desc = desc_result["description"]
-                        st.success("✨ 花束描述生成成功！")
+                        
+                        # 接上：拿着刚生成的英文描述去生图
+                        image_result = generate_flower_image(
+                            st.session_state.bouquet_desc,
+                            size="1024x1024"
+                        )
+                        if image_result and image_result.get("url"):
+                            st.session_state.generated_image_url = image_result["url"]
+                            st.success("✨ 花束示意图已生成！")
+                        else:
+                            st.warning("⚠️ 示意图生成失败，但提示词已就绪")
                         st.rerun()
                     else:
                         st.error(desc_result.get("message", "生成失败"))
@@ -662,6 +672,12 @@ if st.session_state.bouquet_desc:
     
     with st.expander("📝 查看AI生图提示词", expanded=True):
         st.code(st.session_state.bouquet_desc, language="text")
+        if st.session_state.generated_image_url:
+            st.image(
+                st.session_state.generated_image_url,
+                caption="✨ AI生成的花束参考图（图片24小时后失效，请及时保存）",
+                use_column_width=True
+            )
     
     # 花语祝福
     st.markdown("### 💌 定制祝福语")
