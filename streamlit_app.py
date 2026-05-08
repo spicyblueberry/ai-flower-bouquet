@@ -500,7 +500,47 @@ with st.sidebar:
             if st.button(f"💐 {record['time']} · {', '.join(record['flowers'][:2])}...", key=f"history_{i}", use_container_width=True):
                 st.session_state.selected_flowers = record.get("selected_flowers", [])
                 st.rerun()
-
+        # 临时测试：生图API诊断
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### 🔧 API诊断")
+        if st.button("🧪 测试生图API", use_container_width=True):
+            st.write(f"🔍 API_BASE: {API_BASE}")
+            st.write(f"🔍 请求地址: {API_BASE}/images/generations")
+            
+            try:
+                headers = {
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "ecnu-image",
+                    "prompt": "A simple red rose",
+                    "n": 1,
+                    "size": "1024x1024"
+                }
+                st.write("🔍 正在发送请求...")
+                resp = http_requests.post(
+                    f"{API_BASE}/images/generations",
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                )
+                st.write(f"🔍 状态码: {resp.status_code}")
+                st.write(f"🔍 响应内容: {resp.text[:500]}")
+                
+                if resp.status_code == 200:
+                    result = resp.json()
+                    st.success("✅ 调用成功！")
+                    st.json(result)
+                elif resp.status_code == 404:
+                    st.error("❌ 接口不存在，可能网址不对或没有生图权限")
+                elif resp.status_code == 401:
+                    st.error("❌ 认证失败，检查API Key")
+                else:
+                    st.error(f"❌ 其他错误: {resp.status_code}")
+            except Exception as e:
+                st.error(f"❌ 连接失败: {str(e)}")
 # ========== 主区域 ==========
 
 # 灵感画廊
