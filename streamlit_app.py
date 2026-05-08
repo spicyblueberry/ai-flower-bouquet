@@ -229,6 +229,45 @@ def generate_bouquet_description(flower_ids, color_preference=""):
         description = f"A stunning {color_keywords} bouquet of {flower_names_str}, fresh floral arrangement with layered textures, soft natural lighting, wrapped in kraft paper, professional floral photography style, high quality, 8k."
     return {"success": True, "description": description, "flower_names": flower_names, "color_theme": color_preference or "自然搭配"}
 
+def generate_flower_image(prompt_text, size="1024x1024"):
+    """调用文生图API生成花束图片"""
+    if not API_KEY:
+        return None
+    
+    try:
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "ecnu-image",
+            "prompt": prompt_text,
+            "size": size,          # 可改为 "768x768" 或 "512x512"
+            "response_format": "url"
+        }
+        
+        resp = http_requests.post(
+            f"{API_BASE}/images/generations",
+            headers=headers,
+            json=payload,
+            timeout=60  # 生图比文本慢，超时设长一点
+        )
+        resp.raise_for_status()
+        
+        result = resp.json()
+        data = result.get("data", [])
+        if data and len(data) > 0:
+            return {
+                "url": data[0].get("url"),
+                "revised_prompt": data[0].get("revised_prompt", prompt_text)
+            }
+        else:
+            st.warning("图片生成返回为空")
+            return None
+            
+    except Exception as e:
+        st.warning(f"⚠️ 图片生成失败：{str(e)}")
+        return None
 
 # ========== 辅助函数 ==========
 def get_flower_emoji(flower_name):
@@ -361,6 +400,8 @@ if "size" not in st.session_state:
     st.session_state.size = "M"
 if "flower_quantities" not in st.session_state:
     st.session_state.flower_quantities = {}
+if "generated_image_url" not in st.session_state:
+    st.session_state.generated_image_url = None
 # 新增：用户自定义花材分类
 if "custom_types" not in st.session_state:
     st.session_state.custom_types = {}
@@ -637,7 +678,7 @@ if st.session_state.recommend_result:
         # 生成花束示意图按钮
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            if st.button("🎨 生成花束示意图", type="primary", use_container_width=True):
+           if st.button("🎨 生成花束示意图", type="primary", use_container_width=True):
                 with st.spinner("🎨 AI正在构思花束设计..."):
                     selected_ids = [f["id"] for f in st.session_state.selected_flowers]
                     desc_result = generate_bouquet_description(
@@ -646,7 +687,17 @@ if st.session_state.recommend_result:
                     )
                     if desc_result["success"]:
                         st.session_state.bouquet_desc = desc_result["description"]
-                        st.success("✨ 花束描述生成成功！")
+                        
+                        # 接上：拿着刚生成的英文描述去生图
+                        image_result = generate_flower_image(
+                            st.session_state.bouquet_desc,
+                            size="1024x1024"
+                        )
+                        if image_result and image_result.get("url"):
+                            st.session_state.generated_image_url = image_result["url"]
+                            st.success("✨ 花束示意图已生成！")
+                        else:
+                            st.warning("⚠️ 示意图生成失败，但提示词已就绪")
                         st.rerun()
                     else:
                         st.error(desc_result.get("message", "生成失败"))
@@ -662,6 +713,12 @@ if st.session_state.bouquet_desc:
     
     with st.expander("📝 查看AI生图提示词", expanded=True):
         st.code(st.session_state.bouquet_desc, language="text")
+        if st.session_state.generated_image_url:
+            st.image(
+                st.session_state.generated_image_url,
+                caption="✨ AI生成的花束参考图（图片24小时后失效，请及时保存）",
+                use_column_width=True
+            )
     
     # 花语祝福
     st.markdown("### 💌 定制祝福语")
