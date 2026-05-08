@@ -25,13 +25,13 @@ st.set_page_config(
 # ========== API配置 ==========
 try:
     API_KEY = st.secrets.get("ECNU_API_KEY", os.getenv("ECNU_API_KEY", ""))
-    API_BASE = st.secrets.get("ECNU_API_BASE", os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/api/v1"))
-    MODEL_NAME = st.secrets.get("ECNU_MODEL", os.getenv("ECNU_MODEL", "ecnu-chat-model"))
+    API_BASE = st.secrets.get("ECNU_API_BASE", os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1"))
+    MODEL_NAME = st.secrets.get("ECNU_MODEL", os.getenv("ECNU_MODEL", "ecnu-plus"))
 except:
     API_KEY = os.getenv("ECNU_API_KEY", "")
-    API_BASE = os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/api/v1")
-    MODEL_NAME = os.getenv("ECNU_MODEL", "ecnu-chat-model")
-
+    API_BASE = os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1")
+    MODEL_NAME = os.getenv("ECNU_MODEL", "ecnu-plus")
+    
 # ========== CSS ==========
 st.markdown("""
 <style>
