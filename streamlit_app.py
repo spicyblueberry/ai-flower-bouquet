@@ -25,12 +25,16 @@ st.set_page_config(
 # ========== API配置 ==========
 try:
     API_KEY = st.secrets.get("ECNU_API_KEY", os.getenv("ECNU_API_KEY", ""))
-    API_BASE = st.secrets.get("ECNU_API_BASE", os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1/chat/completions"))
+    API_BASE = st.secrets.get("ECNU_API_BASE", os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1"))
     MODEL_NAME = st.secrets.get("ECNU_MODEL", os.getenv("ECNU_MODEL", "ecnu-plus"))
 except:
     API_KEY = os.getenv("ECNU_API_KEY", "")
-    API_BASE = os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1/chat/completions")
+    API_BASE = os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1")
     MODEL_NAME = os.getenv("ECNU_MODEL", "ecnu-plus")
+    # 在 API配置 部分后面添加
+st.sidebar.write(f"🔍 API_BASE: {API_BASE}")
+st.sidebar.write(f"🔍 API_KEY已配置: {'✅是' if API_KEY and API_KEY != '你的API密钥' else '❌否'}")
+st.sidebar.write(f"🔍 MODEL: {MODEL_NAME}")
     
 # ========== CSS ==========
 st.markdown("""
