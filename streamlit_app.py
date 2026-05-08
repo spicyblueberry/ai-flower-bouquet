@@ -232,6 +232,7 @@ def generate_bouquet_description(flower_ids, color_preference=""):
 def generate_flower_image(prompt_text, size="1024x1024"):
     """调用文生图API生成花束图片"""
     if not API_KEY:
+        st.error("❌ API密钥未配置")
         return None
     
     try:
@@ -242,31 +243,59 @@ def generate_flower_image(prompt_text, size="1024x1024"):
         payload = {
             "model": "ecnu-image",
             "prompt": prompt_text,
-            "size": size,          # 可改为 "768x768" 或 "512x512"
+            "n": 1,
+            "size": size,
             "response_format": "url"
         }
+        
+        st.write(f"🔍 正在调用生图API...")
+        st.write(f"🔍 提示词: {prompt_text[:100]}...")
         
         resp = http_requests.post(
             f"{API_BASE}/images/generations",
             headers=headers,
             json=payload,
-            timeout=60  # 生图比文本慢，超时设长一点
+            timeout=60
         )
-        resp.raise_for_status()
         
+        st.write(f"🔍 生图API状态码: {resp.status_code}")
+        
+        if resp.status_code != 200:
+            st.error(f"❌ 生图失败: {resp.status_code} - {resp.text[:200]}")
+            return None
+            
         result = resp.json()
-        data = result.get("data", [])
-        if data and len(data) > 0:
-            return {
-                "url": data[0].get("url"),
-                "revised_prompt": data[0].get("revised_prompt", prompt_text)
-            }
+        st.write(f"🔍 返回数据: {json.dumps(result, ensure_ascii=False)[:300]}")
+        
+        if "data" in result and len(result["data"]) > 0:
+            image_data = result["data"][0]
+            
+            # 尝试多种可能的URL字段名
+            image_url = None
+            for key in ["url", "image_url", "link", "src"]:
+                if key in image_data:
+                    image_url = image_data[key]
+                    break
+            
+            # 如果返回的是base64
+            if "b64_json" in image_data:
+                import base64
+                return {"base64": image_data["b64_json"]}
+            
+            if image_url:
+                st.write(f"🔍 图片URL: {image_url}")
+                return {"url": image_url}
+            else:
+                st.error(f"❌ 未找到图片URL，返回数据: {image_data}")
+                return None
         else:
-            st.warning("图片生成返回为空")
+            st.error(f"❌ 返回数据中没有图片")
             return None
             
     except Exception as e:
-        st.warning(f"⚠️ 图片生成失败：{str(e)}")
+        st.error(f"❌ 图片生成异常: {type(e).__name__}: {str(e)}")
+        import traceback
+        st.error(f"详细错误: {traceback.format_exc()}")
         return None
 
 # ========== 辅助函数 ==========
