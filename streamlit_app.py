@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="AI花束定制 | 智能花艺设计平台",
     page_icon="💐",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 # ========== API配置 ==========
