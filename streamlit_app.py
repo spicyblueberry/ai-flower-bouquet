@@ -107,7 +107,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ========== RAG引擎 ==========
+# ========== RAG引擎（保持不变） ==========
 class FlowerRAGEngine:
     def __init__(self):
         try:
@@ -161,7 +161,7 @@ class FlowerRAGEngine:
 rag_engine = FlowerRAGEngine()
 
 
-# ========== LLM调用 ==========
+# ========== LLM调用（保持不变） ==========
 def call_ecnu_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> str:
     if not API_KEY or API_KEY == "你的API密钥":
         return None
@@ -353,6 +353,7 @@ def generate_bouquet_description(flower_ids, color_preference="", style=""):
                 "type": flower_type
             })
     
+    # 获取花材颜色
     flower_colors = []
     for f in selected_flowers:
         color_field = f.get("color", "")
@@ -369,7 +370,7 @@ def generate_bouquet_description(flower_ids, color_preference="", style=""):
         color_keywords = "vibrant"
     
     # 获取风格包材
-    user_style = st.session_state.style if st.session_state.style != "任意" else "清新自然"
+    user_style = style if style and style != "任意" else "清新自然"
     packaging = get_style_packaging(user_style)
     
     # 构建带数量的花材描述
@@ -394,7 +395,6 @@ def generate_bouquet_description(flower_ids, color_preference="", style=""):
 - 包含 "bouquet"、"floral arrangement" 等关键词
 - 用词优美，适合AI绘画
 - 输出纯英文，80词以内
-- 示例格式："A beautiful {color_keywords} bouquet with 5 roses and 3 lilies, wrapped in {packaging['wrapping']}..."
 
 注意：一定要在描述中包含每种花材的具体数量！"""
     
@@ -485,6 +485,7 @@ def generate_flower_image(prompt_text, size="1024x1024"):
         import traceback
         st.error(f"详细错误: {traceback.format_exc()}")
         return None
+
 
 # ========== 辅助函数 ==========
 def get_flower_emoji(flower_name):
@@ -689,7 +690,7 @@ with st.sidebar:
         st.session_state.has_scent_filter = st.selectbox("🌺 香气", ["全部", "有香味", "无香味"])
     st.markdown("---")
     st.session_state.color = st.selectbox("🎨 偏好颜色", ["任意", "粉色", "红色", "白色", "紫色", "黄色", "橙色", "蓝色", "绿色"])
-    st.session_state.style = st.selectbox("✨ 偏好风格", ["任意", "浪漫", "清新自然", "简约高级", "阳光活力", "复古", "可爱", "华丽大气"])
+    st.session_state.style = st.selectbox("✨ 偏好风格", ["任意", "浪漫", "清新自然", "简约高级", "阳光活力", "复古", "可爱", "华丽大气", "温馨"])
     st.session_state.budget = st.selectbox("💰 预算", ["任意", "低", "中", "中高", "高"])
     # 尺寸选择
     size_options = {
