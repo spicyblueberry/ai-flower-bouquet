@@ -1,7 +1,7 @@
 """
 AI花束定制平台 - 完整合并版（Streamlit Cloud可部署）
 保留所有原功能：花材推荐、花束描述生成、学校LLM API调用、订单系统
-新增：花束尺寸S/M/L/XL、按支数计价、材料费/人工费、叶材果材归入配花
+新增：花束尺寸S/M/L/XL、按支数计价、材料费/人工费、用户自定义主花/配花
 """
 import streamlit as st
 import requests as http_requests
@@ -82,6 +82,14 @@ st.markdown("""
         display: inline-block; background: linear-gradient(135deg, #ff6b9d, #8b5cf6);
         color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;
     }
+    .type-badge-main {
+        display: inline-block; background: linear-gradient(135deg, #ff6b9d, #ff4081);
+        color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;
+    }
+    .type-badge-filler {
+        display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;
+    }
     .footer {
         text-align: center; padding: 30px; margin-top: 50px;
         color: #999; font-size: 12px; border-top: 1px solid rgba(255,107,157,0.2);
@@ -110,7 +118,7 @@ class FlowerRAGEngine:
             {"id": 6, "name": "郁金香", "color": "红色、黄色、紫色、白色", "language": "爱的宣言、高贵、幸福", "occasion": ["表白", "纪念日", "日常惊喜"], "target": ["恋人"], "style": "简约高级", "price_level": "中高", "unit_price": 10, "category": "主花", "season": "春季", "description": "优雅的杯状花型，荷兰国花", "scent": "无香味"},
             {"id": 7, "name": "绣球", "color": "蓝色、粉色、紫色、白色", "language": "永恒团圆、希望、美满", "occasion": ["乔迁", "婚礼", "探望"], "target": ["家人", "朋友"], "style": "浪漫", "price_level": "中", "unit_price": 15, "category": "主花", "season": "夏季", "description": "圆润饱满的花球，象征团圆美满", "scent": "无香味"},
             {"id": 8, "name": "洋桔梗", "color": "白色、粉色、紫色", "language": "真诚不变的爱、感动", "occasion": ["表白", "生日", "日常惊喜"], "target": ["恋人", "朋友"], "style": "清新自然", "price_level": "中", "unit_price": 6, "category": "主花", "season": "全年", "description": "层层叠叠的花瓣，温柔而雅致", "scent": "无香味"},
-            {"id": 9, "name": "尤加利叶", "color": "绿色", "language": "恩赐、回忆、自然", "occasion": ["日常惊喜", "乔迁"], "target": ["朋友", "家人"], "style": "清新自然", "price_level": "低", "unit_price": 3, "category": "叶材", "season": "全年", "description": "清新芬芳的叶材，北欧风格代表", "scent": "有香味"},
+            {"id": 9, "name": "尤加利叶", "color": "绿色", "language": "恩赐、回忆、自然", "occasion": ["日常惊喜", "乔迁"], "target": ["朋友", "家人"], "style": "清新自然", "price_level": "低", "unit_price": 3, "category": "配花", "season": "全年", "description": "清新芬芳的叶材，北欧风格代表", "scent": "有香味"},
             {"id": 10, "name": "小雏菊", "color": "白色、黄色", "language": "快乐、天真、隐藏的爱", "occasion": ["毕业", "生日", "日常惊喜"], "target": ["朋友", "孩子"], "style": "可爱", "price_level": "低", "unit_price": 2, "category": "配花", "season": "春季", "description": "小巧可爱的花朵，充满童真", "scent": "无香味"},
             {"id": 11, "name": "牡丹", "color": "粉色、红色、白色", "language": "富贵、圆满、国色天香", "occasion": ["乔迁", "开业", "年节"], "target": ["家人", "客户"], "style": "华丽大气", "price_level": "高", "unit_price": 20, "category": "主花", "season": "春季", "description": "花中之王，大气华贵", "scent": "有香味"},
             {"id": 12, "name": "勿忘我", "color": "紫色、蓝色", "language": "永恒的记忆、真爱", "occasion": ["纪念日", "毕业", "表白"], "target": ["恋人", "朋友"], "style": "清新自然", "price_level": "低", "unit_price": 2, "category": "配花", "season": "全年", "description": "小巧的紫色花朵，可做干花", "scent": "无香味"},
@@ -236,14 +244,19 @@ def get_flower_emoji(flower_name):
 
 
 def get_flower_type(flower_name):
-    # 优先从数据库获取类型，叶材和果材归入配花
+    # 优先使用用户自定义的分类
+    if "custom_types" in st.session_state and flower_name in st.session_state.custom_types:
+        return st.session_state.custom_types[flower_name]
+    
+    # 从数据库获取默认分类
     for flower in rag_engine.flower_data:
         if flower['name'] == flower_name:
             category = flower.get('category', '配花')
             if category in ['叶材', '果材']:
                 return '配花'
             return category
-    # 原有逻辑
+    
+    # 原有逻辑作为后备
     leaf_keywords = ['叶', '草', '蕨', '松', '竹', '尤加利', '喷泉', '龟背', '散尾', '蓬莱', '排草', '羊齿', '剑叶', '栀子叶', '龙柳', '红瑞木']
     filler_keywords = ['满天星', '勿忘我', '情人草', '水晶草', '蕾丝', '翠珠', '风铃', '蓝星', '松虫', '鼠尾', '相思梅', '翠菊', '波斯菊', '黄金球', '澳洲米花']
     fruit_keywords = ['红豆', '冬青', '火棘', '灯笼果', '蔷薇果', '棉花', '蒲棒', '芦苇']
@@ -257,7 +270,7 @@ def get_flower_type(flower_name):
     else:
         return '主花'
 
-# ========== 新增函数：数量与价格 ==========
+
 def get_default_quantity(flower, size):
     flower_type = get_flower_type(flower['name'])
     size_defaults = {
@@ -268,8 +281,10 @@ def get_default_quantity(flower, size):
     }
     return size_defaults.get(size, {}).get(flower_type, 3)
 
+
 def get_min_quantity(flower, size):
     return 1
+
 
 def get_max_quantity(flower, size):
     flower_type = get_flower_type(flower['name'])
@@ -277,9 +292,11 @@ def get_max_quantity(flower, size):
     type_max = {'主花': size_max.get(size, 10), '配花': size_max.get(size, 10) * 2}
     return type_max.get(flower_type, 10)
 
+
 def get_step(flower):
     flower_type = get_flower_type(flower['name'])
     return 1 if flower_type == '主花' else 2
+
 
 def calculate_bouquet_price(selected_flowers, flower_quantities, size):
     flower_cost = 0
@@ -344,6 +361,9 @@ if "size" not in st.session_state:
     st.session_state.size = "M"
 if "flower_quantities" not in st.session_state:
     st.session_state.flower_quantities = {}
+# 新增：用户自定义花材分类
+if "custom_types" not in st.session_state:
+    st.session_state.custom_types = {}
 
 
 # ========== 头部 ==========
@@ -391,7 +411,7 @@ with st.sidebar:
     st.session_state.color = st.selectbox("🎨 偏好颜色", ["任意", "粉色", "红色", "白色", "紫色", "黄色", "橙色", "蓝色", "绿色"])
     st.session_state.style = st.selectbox("✨ 偏好风格", ["任意", "浪漫", "清新自然", "简约高级", "阳光活力", "复古", "可爱", "华丽大气"])
     st.session_state.budget = st.selectbox("💰 预算", ["任意", "低", "中", "中高", "高"])
-    # 新增：尺寸选择
+    # 尺寸选择
     size_options = {
         "S": "🌱 S码 - 小巧精致",
         "M": "💐 M码 - 标准适中",
@@ -453,6 +473,7 @@ with col2:
                 st.session_state.recommend_result = result
                 st.session_state.selected_flowers = []
                 st.session_state.flower_quantities = {}
+                st.session_state.custom_types = {}
                 st.success("✅ 推荐完成！")
                 st.balloons()
             else:
@@ -478,35 +499,55 @@ if st.session_state.recommend_result:
                     st.session_state.selected_flowers = [f for f in st.session_state.selected_flowers if f["id"] != flower["id"]]
                     if flower["id"] in st.session_state.flower_quantities:
                         del st.session_state.flower_quantities[flower["id"]]
+                    if flower["name"] in st.session_state.custom_types:
+                        del st.session_state.custom_types[flower["name"]]
                     st.rerun()
             else:
                 if st.button(f"🌸 选择", key=f"select_{flower['id']}", use_container_width=True):
                     st.session_state.selected_flowers.append(flower)
                     st.rerun()
 
-    # 我的花篮（新增支数选择+价格明细）
+    # 我的花篮（新增自定义分类切换）
     if st.session_state.selected_flowers:
         st.markdown("---")
         st.markdown("### 🛒 我的花篮")
         st.markdown(f"*已选择 {len(st.session_state.selected_flowers)} 种花材 · 尺寸：{st.session_state.size}码*")
-        st.caption("💡 提示：下方可调整每种花材的支数")
+        st.caption("💡 提示：可调整支数、上下移动顺序、点击「切换」改变主花/配花分类")
 
-        # 初始化默认支数
+        # 初始化默认支数和分类
         for flower in st.session_state.selected_flowers:
             if flower["id"] not in st.session_state.flower_quantities:
                 st.session_state.flower_quantities[flower["id"]] = get_default_quantity(flower, st.session_state.size)
+            if flower["name"] not in st.session_state.custom_types:
+                # 使用数据库默认分类（叶材果材已归入配花）
+                default_category = flower.get("category", "配花")
+                if default_category in ["叶材", "果材"]:
+                    default_category = "配花"
+                st.session_state.custom_types[flower["name"]] = default_category
 
-        # 显示每种花材及支数选择
+        # 分类统计
+        main_flowers = [f for f in st.session_state.selected_flowers if st.session_state.custom_types.get(f["name"], "配花") == "主花"]
+        filler_flowers = [f for f in st.session_state.selected_flowers if st.session_state.custom_types.get(f["name"], "配花") == "配花"]
+        
+        col_main, col_filler = st.columns(2)
+        with col_main:
+            st.markdown(f"🌹 **主花**：{len(main_flowers)}种 | {sum([st.session_state.flower_quantities.get(f['id'], 0) for f in main_flowers])}支")
+        with col_filler:
+            st.markdown(f"✨ **配花**：{len(filler_flowers)}种 | {sum([st.session_state.flower_quantities.get(f['id'], 0) for f in filler_flowers])}支")
+
+        # 显示每种花材
         for i, flower in enumerate(st.session_state.selected_flowers):
-            col_a, col_b, col_c, col_d, col_e, col_f = st.columns([0.4, 1.8, 1.8, 1, 0.5, 0.5])
+            col_a, col_b, col_c, col_d, col_e, col_f, col_g = st.columns([0.3, 1.5, 1.5, 1, 0.8, 0.3, 0.3])
+            
             with col_a:
                 st.write(f"**#{i+1}**")
             with col_b:
                 st.write(f"{get_flower_emoji(flower['name'])} {flower['name']}")
             with col_c:
-                flower_type = get_flower_type(flower['name'])
+                current_type = st.session_state.custom_types.get(flower["name"], "配花")
+                type_emoji = "🌹" if current_type == "主花" else "✨"
                 unit_price = flower.get("unit_price", 5)
-                st.write(f"{'🌹' if flower_type == '主花' else '✨'} {flower_type} | ¥{unit_price}/支")
+                st.write(f"{type_emoji} {current_type} | ¥{unit_price}/支")
             with col_d:
                 new_qty = st.number_input(
                     "支数",
@@ -518,12 +559,23 @@ if st.session_state.recommend_result:
                 )
                 st.session_state.flower_quantities[flower["id"]] = new_qty
             with col_e:
+                # 切换主花/配花按钮
+                current_type = st.session_state.custom_types.get(flower["name"], "配花")
+                if current_type == "主花":
+                    if st.button("📌 改配花", key=f"toggle_{flower['id']}", use_container_width=True, help="点击切换为配花"):
+                        st.session_state.custom_types[flower["name"]] = "配花"
+                        st.rerun()
+                else:
+                    if st.button("⭐ 改主花", key=f"toggle_{flower['id']}", use_container_width=True, help="点击切换为主花"):
+                        st.session_state.custom_types[flower["name"]] = "主花"
+                        st.rerun()
+            with col_f:
                 if i > 0 and st.button("⬆️", key=f"up_{flower['id']}"):
                     new_list = st.session_state.selected_flowers.copy()
                     new_list[i], new_list[i-1] = new_list[i-1], new_list[i]
                     st.session_state.selected_flowers = new_list
                     st.rerun()
-            with col_f:
+            with col_g:
                 if i < len(st.session_state.selected_flowers) - 1 and st.button("⬇️", key=f"down_{flower['id']}"):
                     new_list = st.session_state.selected_flowers.copy()
                     new_list[i], new_list[i+1] = new_list[i+1], new_list[i]
@@ -541,7 +593,7 @@ if st.session_state.recommend_result:
             for item in price_breakdown["flower_detail"]:
                 if item["quantity"] > 0:
                     flower_emoji = get_flower_emoji(item["name"])
-                    st.write(f"{flower_emoji} {item['name']} × {item['quantity']}支 = ¥{item['subtotal']}")
+                    st.write(f"{flower_emoji} {item['name']} ({item['type']}) × {item['quantity']}支 = ¥{item['subtotal']}")
             st.write(f"**花材小计：¥{price_breakdown['flower_cost']}**")
         with col_price2:
             st.markdown("**📦 其他费用：**")
@@ -553,19 +605,34 @@ if st.session_state.recommend_result:
                 st.write("🚗 配送费：**免费** (满¥200免配送费)")
             st.markdown("---")
             st.metric("💰 订单总价", f"¥{price_breakdown['total_price']}")
+            st.caption("⚠️ 此为预估价格，最终价格以花艺师确认为准")
 
         # 搭配比例分析
         st.markdown("### 📊 搭配比例分析")
         total_stems = sum(st.session_state.flower_quantities.values())
-        main_stems = sum([st.session_state.flower_quantities.get(f['id'], 0) for f in st.session_state.selected_flowers if get_flower_type(f['name']) == '主花'])
-        filler_stems = sum([st.session_state.flower_quantities.get(f['id'], 0) for f in st.session_state.selected_flowers if get_flower_type(f['name']) == '配花'])
+        main_stems = sum([st.session_state.flower_quantities.get(f['id'], 0) for f in main_flowers])
+        filler_stems = sum([st.session_state.flower_quantities.get(f['id'], 0) for f in filler_flowers])
         if total_stems > 0:
             st.progress(main_stems/total_stems, text=f"🌹 主花 {main_stems}支 ({main_stems/total_stems*100:.0f}%)")
             st.progress(filler_stems/total_stems, text=f"✨ 配花 {filler_stems}支 ({filler_stems/total_stems*100:.0f}%)")
-            if main_stems/total_stems < 0.3:
-                st.warning("💡 建议主花占比不低于30%，让花束更有焦点")
+            if main_stems == 0:
+                st.warning("💡 请至少设置1种主花，让花束有视觉焦点")
+            elif main_stems/total_stems < 0.2:
+                st.warning("💡 建议主花占比不低于20%，让花束更有焦点")
             elif main_stems/total_stems > 0.8:
                 st.info("💡 可以适当增加配花，让花束更有层次感")
+            elif 0.3 <= main_stems/total_stems <= 0.7:
+                st.success("✅ 主配花比例协调，花束层次丰富！")
+
+        # 一键建议分类按钮
+        if st.button("🔄 一键建议分类", help="根据花材特性自动建议主花/配花分类"):
+            for flower in st.session_state.selected_flowers:
+                default_category = flower.get("category", "配花")
+                if default_category in ["叶材", "果材"]:
+                    default_category = "配花"
+                st.session_state.custom_types[flower["name"]] = default_category
+            st.success("✅ 已恢复默认分类建议")
+            st.rerun()
 
         # 生成花束示意图按钮
         col_btn1, col_btn2 = st.columns(2)
@@ -626,7 +693,7 @@ if st.session_state.bouquet_desc:
                 
                 st.success("✅ 订单已提交！合作花店将尽快与您联系 📞")
                 st.balloons()
-                order_details = [f"{item['name']} × {item['quantity']}支" for item in price_breakdown["flower_detail"] if item["quantity"] > 0]
+                order_details = [f"{item['name']}({item['type']}) × {item['quantity']}支" for item in price_breakdown["flower_detail"] if item["quantity"] > 0]
                 st.markdown(f"""### 📋 订单信息
 - **花束尺寸**：{st.session_state.size}码
 - **花材清单**：{'、'.join(order_details)}
