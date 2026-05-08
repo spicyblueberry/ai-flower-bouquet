@@ -229,6 +229,11 @@ def generate_bouquet_description(flower_ids, color_preference=""):
         description = f"A stunning {color_keywords} bouquet of {flower_names_str}, fresh floral arrangement with layered textures, soft natural lighting, wrapped in kraft paper, professional floral photography style, high quality, 8k."
     return {"success": True, "description": description, "flower_names": flower_names, "color_theme": color_preference or "自然搭配"}
 
+# 临时测试代码（添加到主程序开头）
+if st.button("🧪 测试生图API"):
+    test_result = generate_flower_image("A beautiful red rose bouquet")
+    st.write("测试结果:", test_result)
+    
 def generate_flower_image(prompt_text, size="1024x1024"):
     """调用文生图API生成花束图片"""
     if not API_KEY:
