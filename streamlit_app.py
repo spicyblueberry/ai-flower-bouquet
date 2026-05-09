@@ -169,20 +169,97 @@ class FlowerRAGEngine:
 rag_engine = FlowerRAGEngine()
 
 
-# ========== LLM调用 ==========
-def call_ecnu_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> str:
-    if not API_KEY or API_KEY == "你的API密钥":
+# ========== LLM调用（增强版）==========
+def call_ecnu_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300, silent: bool = False) -> str:
+    """
+    调用ECNU LLM API
+    
+    Args:
+        system_prompt: 系统提示词
+        user_prompt: 用户提示词
+        max_tokens: 最大token数
+        silent: 是否静默模式（不显示警告）
+    
+    Returns:
+        str: 生成的文本，失败返回None
+    """
+    # 检查API密钥
+    if not API_KEY:
+        if not silent:
+            st.warning("⚠️ API密钥未配置，请检查环境变量或Secrets配置")
         return None
+    
+    if API_KEY == "你的API密钥":
+        if not silent:
+            st.warning("⚠️ 请将API密钥替换为真实的ECNU API密钥")
+        return None
+    
     try:
-        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": MODEL_NAME, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], "temperature": 0.7, "max_tokens": max_tokens}
-        resp = http_requests.post(f"{API_BASE}/chat/completions", headers=headers, json=payload, timeout=30)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        st.warning(f"⚠️ LLM调用失败，将使用备用推荐语")
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": max_tokens
+        }
+        
+        # 发送请求
+        resp = http_requests.post(
+            f"{API_BASE}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        # 处理不同类型的错误
+        if resp.status_code == 401:
+            if not silent:
+                st.warning("⚠️ API密钥无效，请检查配置")
+            return None
+        elif resp.status_code == 404:
+            if not silent:
+                st.warning(f"⚠️ API接口不存在：{API_BASE}/chat/completions")
+            return None
+        elif resp.status_code == 429:
+            if not silent:
+                st.warning("⚠️ API调用频率过高，请稍后再试")
+            return None
+        elif resp.status_code != 200:
+            if not silent:
+                st.warning(f"⚠️ API返回错误: {resp.status_code}")
+            return None
+        
+        # 解析响应
+        result = resp.json()
+        
+        if "choices" in result and len(result["choices"]) > 0:
+            content = result["choices"][0].get("message", {}).get("content", "")
+            if content:
+                return content
+        
+        if not silent:
+            st.warning(f"⚠️ API返回格式异常，未找到有效内容")
         return None
-
+        
+    except http_requests.exceptions.Timeout:
+        if not silent:
+            st.warning("⚠️ LLM调用超时（30秒），请检查网络连接")
+        return None
+    except http_requests.exceptions.ConnectionError:
+        if not silent:
+            st.warning(f"⚠️ 无法连接到API服务器：{API_BASE}")
+        return None
+    except Exception as e:
+        if not silent:
+            st.warning(f"⚠️ LLM调用异常: {type(e).__name__}")
+        return None
 
 # ========== 业务函数 ==========
 def recommend_flowers_balanced(target, occasion, color_preference, style, budget, size="M"):
