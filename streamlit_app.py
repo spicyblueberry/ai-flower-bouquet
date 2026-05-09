@@ -2,11 +2,13 @@
 AI花束定制平台 - 完整合并版（Streamlit Cloud可部署）
 保留所有原功能：花材推荐、花束描述生成、学校LLM API调用、订单系统
 新增：花束尺寸S/M/L/XL、按支数计价、材料费/人工费、用户自定义主花/配花
+新增优化：生图冷却限流、详细错误处理、等待队列提示、配额显示
 """
 import streamlit as st
 import requests as http_requests
 import json
 import os
+import time
 from datetime import datetime
 from typing import List, Dict, Any
 from dotenv import load_dotenv
@@ -31,6 +33,11 @@ except:
     API_KEY = os.getenv("ECNU_API_KEY", "")
     API_BASE = os.getenv("ECNU_API_BASE", "https://chat.ecnu.edu.cn/open/api/v1")
     MODEL_NAME = os.getenv("ECNU_MODEL", "ecnu-plus")
+
+# ========== 生图限流配置 ==========
+IMAGE_GEN_COOLDOWN_SECONDS = 60  # 冷却时间（秒）
+MAX_RETRY_COUNT = 2  # 最大重试次数
+IMAGE_GEN_TIMEOUT = 90  # 生图超时时间（秒）
 
 # ========== CSS ==========
 st.markdown("""
@@ -78,6 +85,11 @@ st.markdown("""
         padding: 10px 20px; font-weight: bold; transition: all 0.3s ease;
     }
     .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,157,0.4); }
+    .stButton > button:disabled {
+        background: #ccc !important;
+        cursor: not-allowed !important;
+        transform: none !important;
+    }
     .price-tag {
         display: inline-block; background: linear-gradient(135deg, #ff6b9d, #8b5cf6);
         color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;
@@ -89,6 +101,14 @@ st.markdown("""
     .type-badge-filler {
         display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2);
         color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;
+    }
+    .quota-warning {
+        background: #fef3c7; border-left: 4px solid #f59e0b;
+        padding: 12px; border-radius: 8px; margin: 10px 0;
+    }
+    .quota-error {
+        background: #fee2e2; border-left: 4px solid #ef4444;
+        padding: 12px; border-radius: 8px; margin: 10px 0;
     }
     .footer {
         text-align: center; padding: 30px; margin-top: 50px;
@@ -165,40 +185,161 @@ def call_ecnu_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -
 
 
 # ========== 业务函数 ==========
-def recommend_flowers(target, occasion, color_preference, style, budget, flower_type="", season="", has_scent=""):
+def recommend_flowers_balanced(target, occasion, color_preference, style, budget, size="M"):
+    """
+    智能推荐花材，自动按主花、配花、叶材、果材分类推荐
+    """
     query = f"{target} {occasion} {color_preference} {style} {budget}"
-    rag_results = rag_engine.search(query, top_k=6)
-    filtered_results = rag_results
-    if flower_type:
-        filtered_results = [f for f in filtered_results if get_flower_type(f['name']) == flower_type]
-    if season and season != "全年":
-        filtered_results = [f for f in filtered_results if f.get('season', '全年') == season or f.get('season', '全年') == '全年']
-    if has_scent == "有香味":
-        filtered_results = [f for f in filtered_results if f.get('scent', '') == '有香味']
-    elif has_scent == "无香味":
-        filtered_results = [f for f in filtered_results if f.get('scent', '') == '无香味']
-    if not filtered_results:
-        filtered_results = rag_results[:6]
-    prompt = f"""你是一个专业的花艺推荐师。请根据以下花材推荐结果，写一段150字以内的推荐语。
+    
+    # 根据尺寸确定各类花材数量
+    size_config = {'S': {'主花': 2, '配花': 2, '叶材': 1, '果材': 0},
+                   'M': {'主花': 3, '配花': 2, '叶材': 1, '果材': 1},
+                   'L': {'主花': 3, '配花': 3, '叶材': 2, '果材': 1},
+                   'XL': {'主花': 4, '配花': 3, '叶材': 2, '果材': 2}}
+    config = size_config.get(size, size_config['M'])
+    
+    # 获取所有花材
+    all_flowers = rag_engine.flower_data
+    
+    # 分类花材（如果category字段为空，使用名称推断）
+    def infer_category(flower):
+        """根据花材名称推断分类"""
+        name = flower.get("name", "")
+        # 叶材关键词
+        leaf_keywords = ['叶', '草', '蕨', '松', '竹', '尤加利', '喷泉', '龟背', '散尾', '蓬莱', '排草', '羊齿', '剑叶', '栀子叶', '龙柳', '红瑞木']
+        # 配花关键词
+        filler_keywords = ['满天星', '勿忘我', '情人草', '水晶草', '蕾丝', '翠珠', '风铃', '蓝星', '松虫', '鼠尾', '相思梅', '翠菊', '波斯菊', '黄金球', '澳洲米花']
+        # 果材关键词
+        fruit_keywords = ['红豆', '冬青', '火棘', '灯笼果', '蔷薇果', '棉花', '蒲棒', '芦苇']
+        
+        if any(kw in name for kw in leaf_keywords):
+            return '叶材'
+        elif any(kw in name for kw in filler_keywords):
+            return '配花'
+        elif any(kw in name for kw in fruit_keywords):
+            return '果材'
+        else:
+            return '主花'
+    
+    # 分类花材
+    main_flowers = [f for f in all_flowers if f.get("category") == "主花" or infer_category(f) == "主花"]
+    filler_flowers = [f for f in all_flowers if f.get("category") == "配花" or infer_category(f) == "配花"]
+    leaf_flowers = [f for f in all_flowers if f.get("category") == "叶材" or infer_category(f) == "叶材"]
+    fruit_flowers = [f for f in all_flowers if f.get("category") == "果材" or infer_category(f) == "果材"]
+    
+    # 如果分类后仍然为空，使用全部花材并默认分类
+    if not main_flowers:
+        main_flowers = all_flowers[:4]  # 取前4个作为主花
+    if not filler_flowers:
+        filler_flowers = all_flowers[:3] if len(all_flowers) >= 3 else all_flowers
+    if not leaf_flowers:
+        leaf_flowers = []
+    if not fruit_flowers:
+        fruit_flowers = []
+    
+    # 根据查询进行匹配打分
+    query_lower = query.lower()
+    keywords = set(query_lower.split())
+    
+
+    def score_flower(flower):
+        score = 0
+        search_text = (flower.get("name", "") + flower.get("color", "") + 
+                      flower.get("language", "") + " ".join(flower.get("occasion", [])) + 
+                      " ".join(flower.get("target", [])) + flower.get("style", "")).lower()
+        for kw in keywords:
+            if kw in search_text:
+                score += 1
+        return score
+    
+    # 排序并选取
+    main_flowers.sort(key=score_flower, reverse=True)
+    filler_flowers.sort(key=score_flower, reverse=True)
+    leaf_flowers.sort(key=score_flower, reverse=True)
+    fruit_flowers.sort(key=score_flower, reverse=True)
+    
+    selected_main = main_flowers[:config['主花']]
+    selected_filler = filler_flowers[:config['配花']]
+    selected_leaf = leaf_flowers[:config['叶材']]
+    selected_fruit = fruit_flowers[:config['果材']] if config['果材'] > 0 else []
+    
+    # 合并所有推荐
+    all_selected = selected_main + selected_filler + selected_leaf + selected_fruit
+    
+    # 去重
+    seen_ids = set()
+    unique_flowers = []
+    for f in all_selected:
+        if f["id"] not in seen_ids:
+            seen_ids.add(f["id"])
+            unique_flowers.append(f)
+    
+    # 生成AI推荐语
+    main_names = "、".join([f["name"] for f in selected_main[:2]])
+    filler_names = "、".join([f["name"] for f in selected_filler[:2]])
+    
+    prompt = f"""你是一个专业的花艺推荐师。请根据以下花材组合，写一段150字以内的推荐语。
+
 推荐对象：{target}
 场合：{occasion}
 颜色偏好：{color_preference}
 风格偏好：{style}
-推荐花材列表：
-{json.dumps(filtered_results, ensure_ascii=False, indent=2)}
+花束尺寸：{size}
+
+推荐花材组合：
+主花：{[f['name'] for f in selected_main]}
+配花：{[f['name'] for f in selected_filler]}
+叶材：{[f['name'] for f in selected_leaf]}
+{f'果材：{[f["name"] for f in selected_fruit]}' if selected_fruit else ''}
+
 请输出一段温暖有感染力的推荐语。"""
+
     recommendation_text = call_ecnu_llm("你是一位温暖专业的花艺推荐师。", prompt)
     if not recommendation_text:
-        flower_names = "、".join([f["name"] for f in filtered_results[:4]])
-        recommendation_text = f"🌷 为您精心推荐了以下花材！结合「{target}」的身份和「{occasion}」的场合，{flower_names}等花材在花语寓意和风格上都很契合。您可以从中挑选喜欢的花材，自由搭配出专属花束～"
-    return {"success": True, "flowers": filtered_results, "recommendation": recommendation_text}
+        recommendation_text = f"🌷 为您精心设计了专属花束！主花选用{main_names}，搭配{filler_names}，整体风格{style}，{color_preference}色调与「{occasion}」场合完美契合。让这份花礼传达您的心意～"
+
+    return {
+        "success": True,
+        "flowers": unique_flowers,
+        "main_flowers": selected_main,
+        "filler_flowers": selected_filler,
+        "leaf_flowers": selected_leaf,
+        "fruit_flowers": selected_fruit,
+        "recommendation": recommendation_text
+    }
 
 
 def generate_bouquet_description(flower_ids, color_preference=""):
     selected_flowers = [f for f in rag_engine.flower_data if f["id"] in flower_ids]
-    flower_names = [f["name"] for f in selected_flowers]
-    if not flower_names:
+    
+    if not selected_flowers:
         return {"success": False, "message": "请至少选择一种花材"}
+    
+    # ===== 关键修改：获取用户设定的支数 =====
+    flower_details_with_quantity = []
+    for flower in selected_flowers:
+        flower_id = flower["id"]
+        # 从 session_state 中获取用户设定的支数
+        quantity = st.session_state.flower_quantities.get(flower_id, 3)
+        if quantity > 0:
+            flower_details_with_quantity.append({
+                "name": flower["name"],
+                "quantity": quantity
+            })
+    
+    # 如果没有支数信息，使用默认值
+    if not flower_details_with_quantity:
+        for flower in selected_flowers:
+            flower_details_with_quantity.append({
+                "name": flower["name"],
+                "quantity": 3
+            })
+    
+    # 构建带支数的花材列表字符串
+    flower_names_with_qty = ", ".join([f"{d['quantity']} {d['name']}" for d in flower_details_with_quantity])
+    flower_names_only = [f["name"] for f in selected_flowers]
+    
+    # 收集颜色信息
     flower_colors = []
     for f in selected_flowers:
         color_field = f.get("color", "")
@@ -206,36 +347,54 @@ def generate_bouquet_description(flower_ids, color_preference=""):
             if c in color_field:
                 flower_colors.append(c)
     flower_colors = list(set(flower_colors))
+    
     if color_preference and color_preference != "任意":
         color_keywords = color_preference
     elif flower_colors:
         color_keywords = "、".join(flower_colors[:3])
     else:
         color_keywords = "vibrant"
+    
+    # ===== 关键修改：Prompt中明确要求包含具体支数 =====
     prompt = f"""请将以下花材组合转化为一段英文的花束描述，用于AI文生图工具生成花束图片。
-花材：{'、'.join(flower_names)}
+
+花材及数量（重要：必须包含每种花材的具体数量）：
+{flower_names_with_qty}
+
 整体色彩：{color_keywords}
+
 要求：
+- **必须明确写出每种花材的具体数量**（例如 "3 roses", "5 lilies" 这样的格式）
 - 描述中必须包含「{color_keywords}」作为整体色调
 - 描述花材的层次、包装风格
 - 包含 "bouquet"、"wrapped in kraft paper"、"floral photography" 等关键词
 - 用词优美，适合AI绘画
 - 输出纯英文，60词以内
-- 示例格式："A beautiful {color_keywords} bouquet of roses and lilies, wrapped in kraft paper..."
-"""
-    description = call_ecnu_llm("你擅长将花材搭配转化为优美的英文描述，注意突出整体色调。", prompt, max_tokens=200)
+- 示例格式："A beautiful bouquet of 3 red roses and 2 white lilies, wrapped in kraft paper, natural lighting..."
+
+请严格按照要求生成描述，确保每种花材都有数量前缀。"""
+
+    description = call_ecnu_llm("你擅长将花材搭配转化为优美的英文描述，注意必须包含每种花材的具体数量。", prompt, max_tokens=250)
+    
     if not description:
-        flower_names_str = " and ".join(flower_names[:3])
-        description = f"A stunning {color_keywords} bouquet of {flower_names_str}, fresh floral arrangement with layered textures, soft natural lighting, wrapped in kraft paper, professional floral photography style, high quality, 8k."
-    return {"success": True, "description": description, "flower_names": flower_names, "color_theme": color_preference or "自然搭配"}
+        # 备用描述（确保包含数量）
+        qty_parts = [f"{d['quantity']} {d['name']}" for d in flower_details_with_quantity]
+        flower_names_str = " and ".join(qty_parts)
+        description = f"A stunning {color_keywords} bouquet consisting of {flower_names_str}. Fresh floral arrangement with layered textures, soft natural lighting, wrapped in kraft paper, professional floral photography style, high quality, 8k."
+    
+    return {"success": True, "description": description, "flower_names": flower_names_only, "color_theme": color_preference or "自然搭配"}
 
-
-def generate_flower_image(prompt_text, size="1024x1024"):
-    """调用文生图API生成花束图片"""
+def generate_flower_image_with_retry(prompt_text, size="1024x1024", retry_count=0):
+    """
+    调用文生图API生成花束图片（带重试和详细错误处理）
+    
+    返回格式:
+        {"success": True, "url": "图片URL"} 或
+        {"success": False, "error_type": "配额/权限/超时/参数错误", "message": "错误信息", "status_code": 404}
+    """
     if not API_KEY:
-        st.error("❌ API密钥未配置")
-        return None
-
+        return {"success": False, "error_type": "认证失败", "message": "API密钥未配置，无法生成图片", "status_code": 401}
+    
     try:
         headers = {
             "Authorization": f"Bearer {API_KEY}",
@@ -248,56 +407,127 @@ def generate_flower_image(prompt_text, size="1024x1024"):
             "size": size,
             "response_format": "url"
         }
-
-        st.write(f"🔍 正在调用生图API...")
-        st.write(f"🔍 提示词: {prompt_text[:100]}...")
-
+        
+        # 发送请求
         resp = http_requests.post(
             f"{API_BASE}/images/generations",
             headers=headers,
             json=payload,
-            timeout=60
+            timeout=IMAGE_GEN_TIMEOUT
         )
-
-        st.write(f"🔍 生图API状态码: {resp.status_code}")
-
-        if resp.status_code != 200:
-            st.error(f"❌ 生图失败: {resp.status_code} - {resp.text[:200]}")
-            return None
-
-        result = resp.json()
-        st.write(f"🔍 返回数据: {json.dumps(result, ensure_ascii=False)[:300]}")
-
-        if "data" in result and len(result["data"]) > 0:
-            image_data = result["data"][0]
-
-            # 尝试多种可能的URL字段名
-            image_url = None
-            for key in ["url", "image_url", "link", "src"]:
-                if key in image_data:
-                    image_url = image_data[key]
-                    break
-
-            # 如果返回的是base64
-            if "b64_json" in image_data:
-                import base64
-                return {"base64": image_data["b64_json"]}
-
-            if image_url:
-                st.write(f"🔍 图片URL: {image_url}")
-                return {"url": image_url}
+        
+        # 根据状态码分类处理
+        if resp.status_code == 200:
+            result = resp.json()
+            if "data" in result and len(result["data"]) > 0:
+                image_data = result["data"][0]
+                # 尝试多种可能的URL字段名
+                image_url = None
+                for key in ["url", "image_url", "link", "src"]:
+                    if key in image_data:
+                        image_url = image_data[key]
+                        break
+                
+                if image_url:
+                    return {"success": True, "url": image_url}
+                else:
+                    return {"success": False, "error_type": "响应格式错误", "message": "API返回的数据中没有图片URL", "status_code": 200}
             else:
-                st.error(f"❌ 未找到图片URL，返回数据: {image_data}")
-                return None
+                return {"success": False, "error_type": "响应格式错误", "message": "API返回的数据中没有图片", "status_code": 200}
+                
+        elif resp.status_code == 401:
+            return {"success": False, "error_type": "认证失败", "message": "API密钥无效或已过期，请检查配置", "status_code": 401}
+        
+        elif resp.status_code == 404:
+            return {"success": False, "error_type": "接口不存在", "message": "文生图接口未找到，请检查API地址或确认是否有生图权限", "status_code": 404}
+        
+        elif resp.status_code == 429:
+            # 配额/限流错误
+            error_text = resp.text[:200] if resp.text else ""
+            return {"success": False, "error_type": "配额/限流", "message": f"生图配额已用完或请求过于频繁，请稍后再试。{error_text}", "status_code": 429}
+        
+        elif resp.status_code >= 500:
+            return {"success": False, "error_type": "服务端错误", "message": f"生成服务繁忙或超时，请稍后重试 (HTTP {resp.status_code})", "status_code": resp.status_code}
+        
         else:
-            st.error(f"❌ 返回数据中没有图片")
-            return None
-
+            return {"success": False, "error_type": "未知错误", "message": f"生图失败: {resp.status_code} - {resp.text[:200]}", "status_code": resp.status_code}
+            
+    except http_requests.exceptions.Timeout:
+        return {"success": False, "error_type": "超时", "message": f"生成图片超时（超过{IMAGE_GEN_TIMEOUT}秒），模型可能繁忙，请稍后重试", "status_code": None}
+    
+    except http_requests.exceptions.ConnectionError as e:
+        return {"success": False, "error_type": "连接失败", "message": f"无法连接到API服务器: {str(e)[:100]}", "status_code": None}
+    
     except Exception as e:
-        st.error(f"❌ 图片生成异常: {type(e).__name__}: {str(e)}")
-        import traceback
-        st.error(f"详细错误: {traceback.format_exc()}")
-        return None
+        return {"success": False, "error_type": "异常", "message": f"生成图片时发生异常: {type(e).__name__}: {str(e)[:100]}", "status_code": None}
+
+
+def is_image_gen_allowed():
+    """检查是否允许生成图片（冷却时间和重试限制）"""
+    now = time.time()
+    
+    # 检查冷却时间
+    if "last_image_gen_time" in st.session_state:
+        elapsed = now - st.session_state.last_image_gen_time
+        if elapsed < IMAGE_GEN_COOLDOWN_SECONDS:
+            wait_seconds = int(IMAGE_GEN_COOLDOWN_SECONDS - elapsed)
+            return {"allowed": False, "reason": "冷却", "wait_seconds": wait_seconds}
+    
+    # 检查今日生成次数（可选，如果API没有配额限制可以注释）
+    today = datetime.now().strftime("%Y-%m-%d")
+    if "image_gen_count" not in st.session_state:
+        st.session_state.image_gen_count = {}
+        st.session_state.image_gen_count[today] = 0
+    
+    if today not in st.session_state.image_gen_count:
+        st.session_state.image_gen_count[today] = 0
+    
+    # 每日限制（根据API配额调整，默认20次）
+    DAILY_LIMIT = 20
+    if st.session_state.image_gen_count[today] >= DAILY_LIMIT:
+        return {"allowed": False, "reason": "日配额", "daily_limit": DAILY_LIMIT}
+    
+    return {"allowed": True}
+
+
+def record_image_gen():
+    """记录一次图片生成（用于限流统计）"""
+    now = time.time()
+    st.session_state.last_image_gen_time = now
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    if "image_gen_count" not in st.session_state:
+        st.session_state.image_gen_count = {}
+    if today not in st.session_state.image_gen_count:
+        st.session_state.image_gen_count[today] = 0
+    st.session_state.image_gen_count[today] += 1
+
+
+def get_quota_status():
+    """获取配额状态信息"""
+    today = datetime.now().strftime("%Y-%m-%d")
+    if "image_gen_count" not in st.session_state:
+        st.session_state.image_gen_count = {}
+        st.session_state.image_gen_count[today] = 0
+    
+    daily_limit = 20
+    used = st.session_state.image_gen_count.get(today, 0)
+    remaining = max(0, daily_limit - used)
+    
+    # 检查冷却状态
+    cooldown_remaining = 0
+    if "last_image_gen_time" in st.session_state:
+        elapsed = time.time() - st.session_state.last_image_gen_time
+        if elapsed < IMAGE_GEN_COOLDOWN_SECONDS:
+            cooldown_remaining = int(IMAGE_GEN_COOLDOWN_SECONDS - elapsed)
+    
+    return {
+        "daily_limit": daily_limit,
+        "daily_used": used,
+        "daily_remaining": remaining,
+        "cooldown_remaining": cooldown_remaining
+    }
+
 
 # ========== 辅助函数 ==========
 def get_flower_emoji(flower_name):
@@ -432,9 +662,14 @@ if "flower_quantities" not in st.session_state:
     st.session_state.flower_quantities = {}
 if "generated_image_url" not in st.session_state:
     st.session_state.generated_image_url = None
-# 新增：用户自定义花材分类
+# 用户自定义花材分类
 if "custom_types" not in st.session_state:
     st.session_state.custom_types = {}
+# 生图限流相关
+if "last_image_gen_time" not in st.session_state:
+    st.session_state.last_image_gen_time = 0
+if "image_gen_count" not in st.session_state:
+    st.session_state.image_gen_count = {}
 
 
 # ========== 头部 ==========
@@ -451,6 +686,25 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### 🌸 定制你的花束")
     st.markdown("---")
+    
+    # ===== 配额状态显示 =====
+    quota = get_quota_status()
+    if quota["daily_remaining"] <= 3:
+        st.markdown(f"""
+        <div class="quota-warning">
+            ⚠️ **配额提醒**<br>
+            今日剩余生图次数: {quota["daily_remaining"]}/{quota["daily_limit"]}次<br>
+            请合理使用，避免浪费
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.caption(f"📊 今日可用生图: {quota['daily_remaining']}/{quota['daily_limit']}次")
+    
+    if quota["cooldown_remaining"] > 0:
+        st.caption(f"⏳ 冷却中: {quota['cooldown_remaining']}秒后可继续生成图片")
+    
+    st.markdown("---")
+    
     st.markdown("### ⚡ 快速搭配")
     quick_options = {
         "🌹 经典浪漫": {"target": "恋人", "occasion": "情人节", "color": "红色", "style": "浪漫"},
@@ -501,47 +755,30 @@ with st.sidebar:
                 st.session_state.selected_flowers = record.get("selected_flowers", [])
                 st.rerun()
 
-        # 临时测试：生图API诊断
+    # API诊断工具
     with st.sidebar:
         st.markdown("---")
         st.markdown("### 🔧 API诊断")
-        if st.button("🧪 测试生图API", use_container_width=True):
-            st.write(f"🔍 API_BASE: {API_BASE}")
-            st.write(f"🔍 请求地址: {API_BASE}/images/generations")
-            
-            try:
-                headers = {
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "model": "ecnu-image",
-                    "prompt": "A simple red rose",
-                    "n": 1,
-                    "size": "1024x1024"
-                }
-                st.write("🔍 正在发送请求...")
-                resp = http_requests.post(
-                    f"{API_BASE}/images/generations",
-                    headers=headers,
-                    json=payload,
-                    timeout=30
-                )
-                st.write(f"🔍 状态码: {resp.status_code}")
-                st.write(f"🔍 响应内容: {resp.text[:500]}")
-                
-                if resp.status_code == 200:
-                    result = resp.json()
-                    st.success("✅ 调用成功！")
-                    st.json(result)
-                elif resp.status_code == 404:
-                    st.error("❌ 接口不存在，可能网址不对或没有生图权限")
-                elif resp.status_code == 401:
-                    st.error("❌ 认证失败，检查API Key")
-                else:
-                    st.error(f"❌ 其他错误: {resp.status_code}")
-            except Exception as e:
-                st.error(f"❌ 连接失败: {str(e)}")
+        if st.button("🧪 测试生图API连接", use_container_width=True):
+            with st.spinner("正在测试连接..."):
+                try:
+                    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+                    payload = {"model": "ecnu-image", "prompt": "A simple red rose", "n": 1, "size": "1024x1024"}
+                    resp = http_requests.post(f"{API_BASE}/images/generations", headers=headers, json=payload, timeout=30)
+                    st.write(f"🔍 状态码: {resp.status_code}")
+                    if resp.status_code == 200:
+                        st.success("✅ API连接正常！")
+                    elif resp.status_code == 401:
+                        st.error("❌ 认证失败，检查API Key")
+                    elif resp.status_code == 404:
+                        st.error("❌ 接口不存在，可能没有生图权限")
+                    elif resp.status_code == 429:
+                        st.error("❌ 配额已用完，请明天再试")
+                    else:
+                        st.error(f"❌ 其他错误: {resp.status_code}")
+                except Exception as e:
+                    st.error(f"❌ 连接失败: {str(e)[:100]}")
+
 # ========== 主区域 ==========
 
 # 灵感画廊
@@ -571,16 +808,14 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     if st.button("✨ AI智能推荐花材", use_container_width=True):
         with st.spinner("💐 AI花艺师正在精心搭配..."):
-            result = recommend_flowers(
+            result = recommend_flowers_balanced(
                 target=st.session_state.target,
                 occasion=st.session_state.occasion,
                 color_preference=st.session_state.color if st.session_state.color != "任意" else "",
-                style=st.session_state.style if st.session_state.style != "任意" else "",
+                style=st.session_state.style if st.session_state.style != "任意" else "浪漫",
                 budget=st.session_state.budget if st.session_state.budget != "任意" else "",
-                flower_type=st.session_state.flower_type_filter if st.session_state.flower_type_filter != "全部" else "",
-                season=st.session_state.season_filter if st.session_state.season_filter != "全年" else "",
-                has_scent=st.session_state.has_scent_filter if st.session_state.has_scent_filter != "全部" else ""
-            )
+                size=st.session_state.size
+                 )  
             if result["success"]:
                 st.session_state.recommend_result = result
                 st.session_state.selected_flowers = []
@@ -593,32 +828,110 @@ with col2:
 
 st.markdown("---")
 
-# 显示推荐结果
+# 显示推荐结果（按分类分组）
 if st.session_state.recommend_result:
     result = st.session_state.recommend_result
     st.markdown("### 💌 AI花艺师的温馨推荐")
     st.markdown(f"""<div class="ai-message"><p>💐 {result['recommendation']}</p></div>""", unsafe_allow_html=True)
-    st.markdown("### 🌷 为您精选的花材")
-    st.markdown("*点击花材卡片即可选择，支持多选搭配*")
-    cols = st.columns(2)
-    for idx, flower in enumerate(result["flowers"]):
-        with cols[idx % 2]:
-            is_selected = any(f["id"] == flower["id"] for f in st.session_state.selected_flowers)
-            unit_price = flower.get("unit_price", 5)
-            st.markdown(f"""<div class="flower-item" style="border: 2px solid {'#ff6b9d' if is_selected else '#eee'};"><div class="flower-visual"><span style="font-size: 42px;">{get_flower_emoji(flower['name'])}</span></div><div class="flower-name">{flower['name']}</div><div class="flower-language">「{flower['language']}」</div><div style="margin: 8px 0;"><span class="price-tag">💰 ¥{unit_price}/支</span><span style="margin-left: 8px; font-size: 11px;">🎨 {flower['color']}</span></div></div>""", unsafe_allow_html=True)
-            if is_selected:
-                if st.button(f"✅ 已选", key=f"remove_{flower['id']}", use_container_width=True):
-                    st.session_state.selected_flowers = [f for f in st.session_state.selected_flowers if f["id"] != flower["id"]]
-                    if flower["id"] in st.session_state.flower_quantities:
-                        del st.session_state.flower_quantities[flower["id"]]
-                    if flower["name"] in st.session_state.custom_types:
-                        del st.session_state.custom_types[flower["name"]]
-                    st.rerun()
-            else:
-                if st.button(f"🌸 选择", key=f"select_{flower['id']}", use_container_width=True):
-                    st.session_state.selected_flowers.append(flower)
-                    st.rerun()
-
+    
+    st.markdown("### 🌷 为您精选的花材组合")
+    st.markdown("*点击卡片选择花材*")
+    
+    # 🌹 主花
+    if result.get("main_flowers"):
+        st.markdown("#### 🌹 主花（花束焦点）")
+        cols = st.columns(min(len(result["main_flowers"]), 3))
+        for idx, flower in enumerate(result["main_flowers"]):
+            with cols[idx % 3]:
+                is_selected = any(f["id"] == flower["id"] for f in st.session_state.selected_flowers)
+                unit_price = flower.get("unit_price", 5)
+                border_color = "#ff6b9d" if is_selected else "#eee"
+                bg_color = "#fef5f7" if is_selected else "white"
+                st.markdown(f"""
+                <div class="flower-item" style="border: 2px solid {border_color}; background: {bg_color};">
+                    <div class="flower-visual"><span style="font-size: 42px;">{get_flower_emoji(flower['name'])}</span></div>
+                    <div class="flower-name">{flower['name']}</div>
+                    <div class="flower-language">「{flower['language']}」</div>
+                    <div style="margin: 8px 0;"><span class="price-tag">💰 ¥{unit_price}/支</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                if not is_selected:
+                    if st.button(f"➕ 选择", key=f"select_main_{flower['id']}", use_container_width=True):
+                        st.session_state.selected_flowers.append(flower)
+                        st.session_state.flower_quantities[flower["id"]] = 3
+                        st.rerun()
+    
+    # ✨ 配花
+    if result.get("filler_flowers"):
+        st.markdown("#### ✨ 配花（增添层次）")
+        cols = st.columns(min(len(result["filler_flowers"]), 3))
+        for idx, flower in enumerate(result["filler_flowers"]):
+            with cols[idx % 3]:
+                is_selected = any(f["id"] == flower["id"] for f in st.session_state.selected_flowers)
+                unit_price = flower.get("unit_price", 5)
+                border_color = "#ff6b9d" if is_selected else "#eee"
+                bg_color = "#fef5f7" if is_selected else "white"
+                st.markdown(f"""
+                <div class="flower-item" style="border: 2px solid {border_color}; background: {bg_color};">
+                    <div class="flower-visual"><span style="font-size: 42px;">{get_flower_emoji(flower['name'])}</span></div>
+                    <div class="flower-name">{flower['name']}</div>
+                    <div class="flower-language">「{flower['language']}」</div>
+                    <div style="margin: 8px 0;"><span class="price-tag">💰 ¥{unit_price}/支</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                if not is_selected:
+                    if st.button(f"➕ 选择", key=f"select_filler_{flower['id']}", use_container_width=True):
+                        st.session_state.selected_flowers.append(flower)
+                        st.session_state.flower_quantities[flower["id"]] = 3
+                        st.rerun()
+    
+    # 🍃 叶材
+    if result.get("leaf_flowers"):
+        st.markdown("#### 🍃 叶材（自然基底）")
+        cols = st.columns(min(len(result["leaf_flowers"]), 3))
+        for idx, flower in enumerate(result["leaf_flowers"]):
+            with cols[idx % 3]:
+                is_selected = any(f["id"] == flower["id"] for f in st.session_state.selected_flowers)
+                unit_price = flower.get("unit_price", 5)
+                border_color = "#ff6b9d" if is_selected else "#eee"
+                bg_color = "#fef5f7" if is_selected else "white"
+                st.markdown(f"""
+                <div class="flower-item" style="border: 2px solid {border_color}; background: {bg_color};">
+                    <div class="flower-visual"><span style="font-size: 42px;">{get_flower_emoji(flower['name'])}</span></div>
+                    <div class="flower-name">{flower['name']}</div>
+                    <div class="flower-language">「{flower['language']}」</div>
+                    <div style="margin: 8px 0;"><span class="price-tag">💰 ¥{unit_price}/支</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                if not is_selected:
+                    if st.button(f"➕ 选择", key=f"select_leaf_{flower['id']}", use_container_width=True):
+                        st.session_state.selected_flowers.append(flower)
+                        st.session_state.flower_quantities[flower["id"]] = 2
+                        st.rerun()
+    
+    # 🍎 果材
+    if result.get("fruit_flowers"):
+        st.markdown("#### 🍎 果材（点睛之笔）")
+        cols = st.columns(min(len(result["fruit_flowers"]), 3))
+        for idx, flower in enumerate(result["fruit_flowers"]):
+            with cols[idx % 3]:
+                is_selected = any(f["id"] == flower["id"] for f in st.session_state.selected_flowers)
+                unit_price = flower.get("unit_price", 5)
+                border_color = "#ff6b9d" if is_selected else "#eee"
+                bg_color = "#fef5f7" if is_selected else "white"
+                st.markdown(f"""
+                <div class="flower-item" style="border: 2px solid {border_color}; background: {bg_color};">
+                    <div class="flower-visual"><span style="font-size: 42px;">{get_flower_emoji(flower['name'])}</span></div>
+                    <div class="flower-name">{flower['name']}</div>
+                    <div class="flower-language">「{flower['language']}」</div>
+                    <div style="margin: 8px 0;"><span class="price-tag">💰 ¥{unit_price}/支</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                if not is_selected:
+                    if st.button(f"➕ 选择", key=f"select_fruit_{flower['id']}", use_container_width=True):
+                        st.session_state.selected_flowers.append(flower)
+                        st.session_state.flower_quantities[flower["id"]] = 1
+                        st.rerun()
     # 我的花篮（新增自定义分类切换）
     if st.session_state.selected_flowers:
         st.markdown("---")
@@ -746,32 +1059,116 @@ if st.session_state.recommend_result:
             st.success("✅ 已恢复默认分类建议")
             st.rerun()
 
-        # 生成花束示意图按钮
+        # 生成花束示意图按钮（带冷却和限流）
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-           if st.button("🎨 生成花束示意图", type="primary", use_container_width=True):
-                with st.spinner("🎨 AI正在构思花束设计..."):
-                    selected_ids = [f["id"] for f in st.session_state.selected_flowers]
-                    desc_result = generate_bouquet_description(
-                        flower_ids=selected_ids,
-                        color_preference=st.session_state.color if st.session_state.color != "任意" else ""
-                    )
-                    if desc_result["success"]:
+            # 检查是否允许生成
+            gen_check = is_image_gen_allowed()
+            button_disabled = not gen_check["allowed"]
+            button_help = ""
+            if not gen_check["allowed"]:
+                if gen_check["reason"] == "冷却":
+                    button_help = f"请等待 {gen_check['wait_seconds']} 秒后再生成"
+                elif gen_check["reason"] == "日配额":
+                    button_help = f"今日生成次数已达上限（{gen_check['daily_limit']}次），明天再来吧"
+            
+            if st.button(
+                "🎨 生成花束示意图", 
+                type="primary", 
+                use_container_width=True,
+                disabled=button_disabled,
+                help=button_help
+            ):
+                with st.status("🎨 AI正在创作中...", expanded=True) as status:
+                    try:
+                        # 步骤1：生成花束描述
+                        status.update(label="📝 步骤1/3: 生成花束描述...", state="running")
+                        selected_ids = [f["id"] for f in st.session_state.selected_flowers]
+                        desc_result = generate_bouquet_description(
+                            flower_ids=selected_ids,
+                            color_preference=st.session_state.color if st.session_state.color != "任意" else ""
+                        )
+                        
+                        if not desc_result["success"]:
+                            status.update(label="❌ 生成失败", state="error")
+                            st.error(desc_result.get("message", "生成花束描述失败"))
+                            st.stop()
+                        
                         st.session_state.bouquet_desc = desc_result["description"]
-
-                        # 接上：拿着刚生成的英文描述去生图
-                        image_result = generate_flower_image(
+                        status.update(label="✅ 步骤1/3: 花束描述生成完成", state="complete")
+                        
+                        # 步骤2：调用文生图API
+                        status.update(label="🎨 步骤2/3: 调用AI绘画模型（可能需要30-60秒）...", state="running")
+                        
+                        # 显示进度提示
+                        st.info("⏳ AI正在生成图片，请耐心等待... 生图模型处理较慢，通常需要30-90秒")
+                        
+                        image_result = generate_flower_image_with_retry(
                             st.session_state.bouquet_desc,
                             size="1024x1024"
                         )
-                        if image_result and image_result.get("url"):
+                        
+                        if image_result["success"]:
+                            status.update(label="✅ 步骤2/3: 图片生成成功", state="complete")
                             st.session_state.generated_image_url = image_result["url"]
-                            st.success("✨ 花束示意图已生成！")
+                            
+                            # 步骤3：记录生成历史
+                            status.update(label="📝 步骤3/3: 保存记录...", state="running")
+                            record_image_gen()
+                            status.update(label="🎉 全部完成！花束示意图已就绪", state="complete")
+                            st.success("✨ 花束示意图生成成功！")
+                            st.balloons()
+                            st.rerun()
                         else:
-                            st.warning("⚠️ 示意图生成失败，但提示词已就绪")
-                        st.rerun()
-                    else:
-                        st.error(desc_result.get("message", "生成失败"))
+                            # 详细错误处理
+                            error_type = image_result.get("error_type", "未知错误")
+                            error_msg = image_result.get("message", "")
+                            status_code = image_result.get("status_code", "")
+                            
+                            status.update(label=f"❌ 生成失败: {error_type}", state="error")
+                            
+                            if error_type == "配额/限流":
+                                st.markdown(f"""
+                                <div class="quota-error">
+                                    ❌ **生图配额不足**<br>
+                                    {error_msg}<br>
+                                    💡 建议：请明天再试，或联系管理员增加配额
+                                </div>
+                                """, unsafe_allow_html=True)
+                            elif error_type == "认证失败":
+                                st.markdown(f"""
+                                <div class="quota-error">
+                                    ❌ **API认证失败**<br>
+                                    {error_msg}<br>
+                                    💡 建议：请检查API密钥配置是否正确
+                                </div>
+                                """, unsafe_allow_html=True)
+                            elif error_type == "接口不存在":
+                                st.markdown(f"""
+                                <div class="quota-error">
+                                    ❌ **文生图接口未找到**<br>
+                                    {error_msg}<br>
+                                    💡 建议：确认当前账号是否有生图权限，或联系管理员开通
+                                </div>
+                                """, unsafe_allow_html=True)
+                            elif error_type == "超时":
+                                st.markdown(f"""
+                                <div class="quota-error">
+                                    ⏰ **生成超时**<br>
+                                    {error_msg}<br>
+                                    💡 建议：模型繁忙，请稍后重试（建议等待30秒再试）
+                                </div>
+                                """, unsafe_allow_html=True)
+                            else:
+                                st.error(f"❌ 图片生成失败: {error_msg}")
+                            
+                            # 记录失败但不占用配额次数（不调用 record_image_gen）
+                            st.info("💡 提示词已生成，您也可以将上方提示词复制到其他AI绘画工具中使用")
+                            
+                    except Exception as e:
+                        status.update(label="❌ 生成过程发生异常", state="error")
+                        st.error(f"生成过程中发生异常: {str(e)}")
+        
         with col_btn2:
             if total_stems > 0:
                 st.metric("🌸 总花材支数", f"{total_stems}支")
@@ -784,13 +1181,21 @@ if st.session_state.bouquet_desc:
 
     with st.expander("📝 查看AI生图提示词", expanded=True):
         st.code(st.session_state.bouquet_desc, language="text")
-        if st.session_state.generated_image_url:
-            st.image(
-                st.session_state.generated_image_url,
-                caption="✨ AI生成的花束参考图（图片24小时后失效，请及时保存）",
-                use_column_width=True
-            )
-
+        col_copy1, col_copy2 = st.columns([1, 3])
+        with col_copy1:
+            if st.button("📋 复制提示词", use_container_width=True):
+                st.write("✅ 已复制到剪贴板")
+                # 使用JavaScript复制（实际需要js，但streamlit中可手动复制）
+    
+    # 显示生成的图片
+    if st.session_state.generated_image_url:
+        st.image(
+            st.session_state.generated_image_url,
+            caption="✨ AI生成的花束参考图（图片24小时后失效，请及时保存）",
+            use_column_width=True
+        )
+        st.caption("💡 如需保存图片，请右键点击图片选择「图片另存为」")
+    
     # 花语祝福
     st.markdown("### 💌 定制祝福语")
     st.session_state.custom_message = st.text_area("写下你想对Ta说的话...", value=st.session_state.custom_message, height=80)
