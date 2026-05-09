@@ -241,7 +241,6 @@ def recommend_flowers_balanced(target, occasion, color_preference, style, budget
     query_lower = query.lower()
     keywords = set(query_lower.split())
     
-
     def score_flower(flower):
         score = 0
         search_text = (flower.get("name", "") + flower.get("color", "") + 
