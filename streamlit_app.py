@@ -779,27 +779,6 @@ with st.sidebar:
     if quota["cooldown_remaining"] > 0:
         st.caption(f"⏳ 冷却中: {quota['cooldown_remaining']}秒后可继续生成图片")
     
-    st.markdown("---")
-    
-    st.markdown("### ⚡ 快速搭配")
-    quick_options = {
-        "🌹 经典浪漫": {"target": "恋人", "occasion": "情人节", "color": "红色", "style": "浪漫"},
-        "🌸 母亲节暖心": {"target": "家人", "occasion": "母亲节", "color": "粉色", "style": "温馨"},
-        "🍃 清新文艺": {"target": "朋友", "occasion": "生日", "color": "白色", "style": "清新自然"},
-        "🌻 阳光活力": {"target": "朋友", "occasion": "毕业", "color": "黄色", "style": "阳光活力"},
-    }
-    quick_col1, quick_col2 = st.columns(2)
-    quick_items = list(quick_options.items())
-    for i, (label, config) in enumerate(quick_items):
-        col = quick_col1 if i % 2 == 0 else quick_col2
-        with col:
-            if st.button(label, key=f"quick_{i}", use_container_width=True):
-                st.session_state.target = config["target"]
-                st.session_state.occasion = config["occasion"]
-                st.session_state.color = config["color"]
-                st.session_state.style = config["style"]
-                st.rerun()
-    st.markdown("---")
     target = st.selectbox("👤 送给谁？", ["恋人", "家人", "朋友", "老师", "自己", "客户", "孩子"])
     st.session_state.target = target
     occasion = st.selectbox("🎉 什么场合？", ["日常惊喜", "生日", "表白", "纪念日", "毕业", "情人节", "乔迁", "开业", "探望", "道歉", "婚礼", "年节", "母亲节"])
@@ -864,7 +843,6 @@ for i, (emoji, name, description, config) in enumerate(gallery_data):
                 <div style="font-size: 48px; margin-bottom: 10px;">{emoji}</div>
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;">{name}</div>
                 <div style="font-size: 12px; color: #666; margin-bottom: 10px;">{description}</div>
-                <span class="price-tag" style="font-size: 11px;">点击生成</span>
             </div>
             """, unsafe_allow_html=True)
         
