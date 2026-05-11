@@ -843,7 +843,7 @@ for i, (emoji, name, description, config) in enumerate(gallery_data):
                 <div style="font-size: 48px; margin-bottom: 10px;">{emoji}</div>
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;">{name}</div>
                 <div style="font-size: 12px; color: #666; margin-bottom: 10px;">{description}</div>
-                <span class="price-tag" style="font-size: 11px;">点击生成</span>
+                <span class="price-tag" style="font-size: 11px;">点击下方</span>
             </div>
             """, unsafe_allow_html=True)
         
