@@ -829,7 +829,23 @@ for i, (emoji, name, description, config) in enumerate(gallery_data):
         # 创建可点击的卡片
         card_clicked = st.container()
         with card_clicked:
-           st.markdown(f"""<div style="background: linear-gradient(135deg, #fff, #fef5f7); border-radius: 16px; padding: 15px; text-align: center; border: 1px solid #eee; margin-bottom: 8px;"><div style="font-size: 36px;">{emoji}</div><div style="font-weight: bold; font-size: 14px;">{name}</div><span class="price-tag" style="font-size: 10px; display: inline-block; margin-top: 6px;">{tag}</span></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #fff, #fef5f7); 
+                border-radius: 16px; 
+                padding: 20px; 
+                text-align: center; 
+                border: 2px solid #eee; 
+                margin-bottom: 10px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.border='2px solid #ff6b9d'" onmouseout="this.style.border='2px solid #eee'">
+                <div style="font-size: 48px; margin-bottom: 10px;">{emoji}</div>
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;">{name}</div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">{description}</div>
+                <span class="price-tag" style="font-size: 11px;">点击生成</span>
+            </div>
+            """, unsafe_allow_html=True)
         
         # 点击按钮触发推荐
         if st.button(f"生成「{name}」", key=f"gallery_btn_{i}", use_container_width=True):
