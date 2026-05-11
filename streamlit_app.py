@@ -752,7 +752,7 @@ if "image_gen_count" not in st.session_state:
 st.markdown("""
 <div class="main-header">
     <div style="font-size: 60px; margin-bottom: 10px;">💐</div>
-    <h1 style="font-size: 42px; margin: 0;">AI花束定制平台</h1>
+    <h1 style="font-size: 42px; margin: 0;">信心花舍 · 智能定制</h1>
     <p style="font-size: 16px; opacity: 0.9; margin-top: 10px;">智能花艺推荐 · 专属花束设计 · 线下花店配送</p>
     <p style="font-size: 12px; opacity: 0.7; margin-top: 5px;">🤖 Powered by ECNU Chat 大语言模型 | 第三届全民数字素养与AI创新应用大赛</p>
 </div>
