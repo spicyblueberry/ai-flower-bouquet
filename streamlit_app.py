@@ -833,24 +833,67 @@ with st.sidebar:
 
 # ========== 主区域 ==========
 
-# 灵感画廊
+# 灵感画廊 - 增强版
 st.markdown("### 🖼️ 灵感画廊")
-st.markdown("*点击下方按钮，一键套用风格*")
+st.markdown("*点击卡片一键生成专属花束推荐*")
+
 gallery_data = [
-    ("🌹", "红玫瑰恋曲", "经典浪漫", {"target": "恋人", "occasion": "情人节", "color": "红色", "style": "浪漫"}),
-    ("🌻", "向日葵阳光", "清新活力", {"target": "朋友", "occasion": "毕业", "color": "黄色", "style": "阳光活力"}),
-    ("🤍", "纯白新娘", "简约高级", {"target": "恋人", "occasion": "婚礼", "color": "白色", "style": "简约高级"}),
-    ("💜", "紫色梦境", "神秘优雅", {"target": "恋人", "occasion": "纪念日", "color": "紫色", "style": "浪漫"}),
+    ("🌹", "红玫瑰恋曲", "送给恋人的浪漫惊喜", {"target": "恋人", "occasion": "情人节", "color": "红色", "style": "浪漫"}),
+    ("🌻", "向日葵阳光", "毕业季的阳光祝福", {"target": "朋友", "occasion": "毕业", "color": "黄色", "style": "阳光活力"}),
+    ("🤍", "纯白新娘", "婚礼的纯洁祝福", {"target": "恋人", "occasion": "婚礼", "color": "白色", "style": "简约高级"}),
+    ("💜", "紫色梦境", "纪念日的深情告白", {"target": "恋人", "occasion": "纪念日", "color": "紫色", "style": "浪漫"}),
 ]
+
 gallery_cols = st.columns(4)
-for i, (emoji, name, tag, config) in enumerate(gallery_data):
+for i, (emoji, name, description, config) in enumerate(gallery_data):
     with gallery_cols[i]:
-        st.markdown(f"""<div style="background: linear-gradient(135deg, #fff, #fef5f7); border-radius: 16px; padding: 15px; text-align: center; border: 1px solid #eee; margin-bottom: 8px;"><div style="font-size: 36px;">{emoji}</div><div style="font-weight: bold; font-size: 14px;">{name}</div><span class="price-tag" style="font-size: 10px; display: inline-block; margin-top: 6px;">{tag}</span></div>""", unsafe_allow_html=True)
-        if st.button(f"✨ 试试这个", key=f"gallery_{i}", use_container_width=True):
+        # 创建可点击的卡片
+        card_clicked = st.container()
+        with card_clicked:
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #fff, #fef5f7); 
+                border-radius: 16px; 
+                padding: 20px; 
+                text-align: center; 
+                border: 2px solid #eee; 
+                margin-bottom: 10px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.border='2px solid #ff6b9d'" onmouseout="this.style.border='2px solid #eee'">
+                <div style="font-size: 48px; margin-bottom: 10px;">{emoji}</div>
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;">{name}</div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">{description}</div>
+                <span class="price-tag" style="font-size: 11px;">点击生成</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # 点击按钮触发推荐
+        if st.button(f"生成「{name}」", key=f"gallery_btn_{i}", use_container_width=True):
+            # 设置侧边栏参数
             st.session_state.target = config["target"]
             st.session_state.occasion = config["occasion"]
             st.session_state.color = config["color"]
             st.session_state.style = config["style"]
+            
+            # 自动推荐
+            with st.spinner(f"💐 正在为您生成「{name}」..."):
+                result = recommend_flowers_balanced(
+                    target=st.session_state.target,
+                    occasion=st.session_state.occasion,
+                    color_preference=st.session_state.color if st.session_state.color != "任意" else "",
+                    style=st.session_state.style if st.session_state.style != "任意" else "浪漫",
+                    budget=st.session_state.budget,
+                    size=st.session_state.size
+                )
+                if result["success"]:
+                    st.session_state.recommend_result = result
+                    st.session_state.selected_flowers = []
+                    st.session_state.flower_quantities = {}
+                    st.session_state.custom_types = {}
+                    st.toast(f"✅ 「{name}」生成成功！", icon="🎉")
+                else:
+                    st.error("推荐失败")
             st.rerun()
 
 st.markdown("---")
